@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import mpl_style
 import Hirogen_Functions
-plt.style.use(mpl_style.style1)
+plt.style.use(mpl_style.scientific)
 
 import sys
 import os
@@ -22,6 +22,8 @@ from dust_extinction.parameter_averages import F99
 from numpy.fft import *
 from mysql.connector import errorcode
 
+
+
 np.set_printoptions(threshold=sys.maxsize)
 c = constants.value('speed of light in vacuum') / 1000
 
@@ -38,6 +40,36 @@ User_Config = Hirogen_Functions.user_config(user=User)
 #TableID = "SDSS_Test_QSO_Sample"
 #TableID = "SDSS_Test_Sample"
 TableID = "SDSS_Confirmed_Objects"
+
+config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
+
+Lower_Wave = config_parameters[0]
+Upper_Wave = config_parameters[1]
+
+Lower_Shift = config_parameters[2]
+Upper_Shift = config_parameters[3]
+
+# Any object with a candidate score equal to or exceeding this value will be treated as an ECLE candidate
+Candidate_Threshold = config_parameters[4]
+
+# Maximum possible candidate score
+Candidate_Score_Max = config_parameters[5]
+
+# To qualify as a line detection for candidate selection the overall feature pEQW must exceed this value:
+LineDetection_pEQW_Threshold = config_parameters[6]
+LineDetection_Max_Threshold = config_parameters[7]
+
+LineDetection_Max_Above_Av_Continua_Threshold = config_parameters[8]
+
+# To qualify as a line detection for candidate selection the maximum flux point of the feature must occur
+# within this +_ kms^-1 of the zero velocity point
+LineDetection_Peak_Tolerance = config_parameters[9]
+Line_Peak_Location_Region = config_parameters[10]
+
+Line_Peak_Region_Minima_Threshold = config_parameters[11]
+
+Strong_EQW_Threshold = config_parameters[12]
+Strong_Peak_Max_Threshold = config_parameters[13]
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -158,9 +190,32 @@ flux = flux_extinction_corrected
 
 lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=z) * u.AA
 
+print(lamb_rest)
+
+spectral_lines = Hirogen_Functions.lines_for_analysis()
+
+line_name = '[FeVII]6088'
+
+line = spectral_lines[line_name]
+
+line_location = line[0]
+
+scale_array = np.ones(len(flux))
+
+
+
+for i, x in enumerate(scale_array):
+    if i >= line_location - 12 and i <= line_location + 12:
+        x = 0.5
+
+
+scaled_flux = flux * scale_array
+
 fig, ax = plt.subplots(figsize = (14,8))
-ax.step(lamb_rest, flux, 'k')
+ax.step(lamb_rest, scaled_flux, 'k')
 ax.set_xlabel(r"Rest Wavelength ($\AA$)")
 ax.set_ylabel(r"Flux (10$^{-17}$ erg/cm$^{2}$/s/$\AA$)")
 
 plt.show()
+
+

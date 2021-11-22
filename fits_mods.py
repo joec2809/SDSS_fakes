@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import mpl_style
 import Hirogen_Functions
+import mods_functions
 plt.style.use(mpl_style.scientific)
 
 import sys
@@ -166,10 +167,6 @@ smoothed_flux = convolve(flux, Box1DKernel(smoothing_boxcar))
 flux = smoothed_flux
 
 ###########
-# Median Filter
-###########
-
-###########
 # Extinction Correction
 ###########
 
@@ -190,28 +187,17 @@ flux = flux_extinction_corrected
 
 lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=z) * u.AA
 
-print(lamb_rest)
 
-spectral_lines = Hirogen_Functions.lines_for_analysis()
+mean = np.mean(flux)
 
-line_name = '[FeVII]6088'
+flux -= mean 
 
-line = spectral_lines[line_name]
+lines_to_scale = Hirogen_Functions.lines_for_scoring()
 
-line_location = line[0]
-
-scale_array = np.ones(len(flux))
-
-
-
-for i, x in enumerate(scale_array):
-    if i >= line_location - 12 and i <= line_location + 12:
-        x = 0.5
-
-
-scaled_flux = flux * scale_array
+scaled_flux = mods_functions.peak_scaler(flux, lamb_rest, lines_to_scale, 0.5)
 
 fig, ax = plt.subplots(figsize = (14,8))
+ax.step(lamb_rest, flux, 'r')
 ax.step(lamb_rest, scaled_flux, 'k')
 ax.set_xlabel(r"Rest Wavelength ($\AA$)")
 ax.set_ylabel(r"Flux (10$^{-17}$ erg/cm$^{2}$/s/$\AA$)")

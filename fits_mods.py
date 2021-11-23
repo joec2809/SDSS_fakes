@@ -132,10 +132,9 @@ Extinction_Correction_Override_List = Candidate_Data[0][14]
 extinction = Extinction_List
 z = Redshift_List
 
-hdul = fits.open('spec-0907-52373-0419.fits', comments='#')
-
-header = hdul[0].header
-spectrum_data = hdul[1].data
+with fits.open('spec-0907-52373-0419.fits', comments='#') as hdul:
+    header = hdul[0].header
+    spectrum_data = hdul[1].data
 
 """Assumes the spectrum data is in the format:
 Wavelength, Flux, FluxError"""
@@ -162,6 +161,20 @@ lines_to_scale = Hirogen_Functions.lines_for_scoring()
 s_flux = mods_functions.flux_scaler(flux, lamb_rest, lines_to_scale, 0.5)
 s_flux_err = mods_functions.flux_scaler(flux_err, lamb_rest, lines_to_scale, 1)
 
+hdu = fits.BinTableHDU.from_columns(
+    [fits.Column(name='flux', format='E', array = s_flux),
+    fits.Column(name='loglam', format='E', array = wave),
+    fits.Column(name = 'ivar', format = 'E', array = s_flux_err)]
+)
+
+hdu.writeto('scaled_spec-0907-52373-0419.fits', overwrite = True)
+
+with fits.open('scaled_spec-0907-52373-0419.fits') as hdu:
+    hdu.info()
+    data = hdu[1].data
+
+
+
 flux_in = flux * u.Unit('erg cm-2 s-1 AA-1')
 error = flux_err
 
@@ -181,7 +194,7 @@ s_flux = s_flux_in
 
 # If active runs a boxcar smooth, defaults to a width of 5 but can be set via the function call
 smoothed_flux = convolve(flux, Box1DKernel(smoothing_boxcar))
-flux = smoothed_flux
+flux = smoothed_fluxdata = hdu[0].data
 
 s_smoothed_flux = convolve(s_flux, Box1DKernel(smoothing_boxcar))
 s_flux = s_smoothed_flux

@@ -148,15 +148,32 @@ lamb_observed = 10**wave * u.AA
 
 spec_res = (lamb_observed[1] - lamb_observed[0])  # Assumes that the file has a fixed wavelength resolution
 
+###########
+# Redshift Correction
+###########
+
+lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=z) * u.AA
+
+flux_mean = np.mean(flux)
+flux -= flux_mean
+
+lines_to_scale = Hirogen_Functions.lines_for_scoring()
+
+s_flux = mods_functions.flux_scaler(flux, lamb_rest, lines_to_scale, 0.5)
+s_flux_err = mods_functions.flux_scaler(flux_err, lamb_rest, lines_to_scale, 1)
+
 flux_in = flux * u.Unit('erg cm-2 s-1 AA-1')
 error = flux_err
+
+s_flux_in = s_flux * u.Unit('erg cm-2 s-1 AA-1')
+s_error = s_flux_err
 
 all_flag_percentage = -999
 counted_flag_percentage = -999
 
 flux = flux_in
 
-
+s_flux = s_flux_in
 
 ###########
 # Smoothing
@@ -165,6 +182,9 @@ flux = flux_in
 # If active runs a boxcar smooth, defaults to a width of 5 but can be set via the function call
 smoothed_flux = convolve(flux, Box1DKernel(smoothing_boxcar))
 flux = smoothed_flux
+
+s_smoothed_flux = convolve(s_flux, Box1DKernel(smoothing_boxcar))
+s_flux = s_smoothed_flux
 
 ###########
 # Extinction Correction
@@ -181,24 +201,14 @@ flux_extinction_corrected = flux / extinction_model.extinguish(
 )
 flux = flux_extinction_corrected
 
-###########
-# Redshift Correction
-###########
-
-lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=z) * u.AA
-
-
-mean = np.mean(flux)
-
-flux -= mean 
-
-lines_to_scale = Hirogen_Functions.lines_for_scoring()
-
-scaled_flux = mods_functions.peak_scaler(flux, lamb_rest, lines_to_scale, 0.5)
+s_flux_extinction_corrected = s_flux / extinction_model.extinguish(
+    lamb_observed, Ebv=extinction
+)
+s_flux = s_flux_extinction_corrected
 
 fig, ax = plt.subplots(figsize = (14,8))
 ax.step(lamb_rest, flux, 'r')
-ax.step(lamb_rest, scaled_flux, 'k')
+ax.step(lamb_rest, s_flux, 'k')
 ax.set_xlabel(r"Rest Wavelength ($\AA$)")
 ax.set_ylabel(r"Flux (10$^{-17}$ erg/cm$^{2}$/s/$\AA$)")
 

@@ -129,4 +129,11 @@ dmypy.json
 .pyre/
 
 # Data files
-.fits
+*.fits
+
+# Bash Scripts
+*.sh
+
+# Directories
+dr16/
+Hirogen_Outputs/

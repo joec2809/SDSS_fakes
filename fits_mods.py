@@ -129,10 +129,14 @@ Smoothing_Override_List = Candidate_Data[0][12]
 z_Correction_Override_List = Candidate_Data[0][13]
 Extinction_Correction_Override_List = Candidate_Data[0][14]
 
+print(Standard_Inclusion_List)
+
 extinction = Extinction_List
 z = Redshift_List
 
-with fits.open('spec-0907-52373-0419.fits', comments='#') as hdul:
+filename = f"spec-{Plate_List[1]}-{MJD_List}-{FiberID_List}.fits"
+
+with fits.open(filename, comments='#') as hdul:
     header = hdul[0].header
     spectrum_data = hdul[1].data
 
@@ -142,6 +146,7 @@ Wavelength, Flux, FluxError"""
 wave = np.array(spectrum_data['loglam'])
 flux = np.array(spectrum_data['flux'])
 flux_err = np.array(spectrum_data['ivar'])
+
 
 lamb_observed = 10**wave * u.AA
 
@@ -161,7 +166,10 @@ lines_to_scale = Hirogen_Functions.lines_for_scoring()
 s_flux = mods_functions.flux_scaler(flux, lamb_rest, lines_to_scale, 0.5)
 s_flux_err = mods_functions.flux_scaler(flux_err, lamb_rest, lines_to_scale, 1)
 
-mods_functions.fits_file_gen(wave, s_flux, s_flux_err)
+flux += flux_mean
+s_flux += flux_mean
+
+mods_functions.fits_file_gen(wave, s_flux, s_flux_err, filename)
 
 flux_in = flux * u.Unit('erg cm-2 s-1 AA-1')
 error = flux_err

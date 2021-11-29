@@ -612,6 +612,21 @@ def continua_maker(spec_region, flux, line_name, line_loc, object_name):
     return continuum, scaled_flux, continuum_regions
 
 
+def flux_scaler(flux, wavelengths, line_names, scale_value):
+    scale_array = np.ones(len(flux))
+    lines = lines_for_analysis()
+    for i, name in enumerate(line_names):
+        line = lines[name]
+        line_location = line[0]
+        for i, x in enumerate(scale_array):
+            if wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] >= 0: 
+                scale_array[i] = scale_value
+            elif wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] < 0: 
+                scale_array[i] = 1/scale_value   
+    scaled_flux = flux*scale_array
+    return scaled_flux
+
+
 def eqw_finder(flux, continuum, xaxis, object_name, start="A", stop="B", xstep="C"):
     """Equivalent Width Finder - Configured for specifically for Hirogen - An older version that is not currently in use
 
@@ -1013,7 +1028,6 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
 
     return file_paths
 
-
 def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxcar=5, median_filter=False,
                           med_filter_kernel=3, flag_check=False, z_correction_flag=0, extinction_correction_flag=0):
     """ Very similar in function to SDSS spectrum reader so comments are only included for the differences
@@ -1256,6 +1270,112 @@ def sdss_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
 
     return lamb_rest, flux, error, spec_res, flags, masked_flags, all_flag_percentage, counted_flag_percentage
 
+
+def sdss_spectrum_reader_and_scaler(filepath, z, extinction, smoothing=True, smoothing_boxcar=5,
+                         median_filter=False, med_filter_kernel=3, header_print=False, flag_check=False,
+                         z_correction_flag=0, extinction_correction_flag=0):
+    """Reads in and does initial processing on SDSS spectra"""
+
+    spectrum = spec_reader(filepath=filepath)
+    spec_header = spectrum[0]
+
+    if header_print:
+        print(spec_header)
+
+    spec_data = spectrum[1]
+
+    lamb_observed = 10 ** spec_data['loglam'] * u.AA  # Observed wavelength
+    spec_res = lamb_observed[1] - lamb_observed[0]  # Spectral resolution
+    # This is VERY rough currently given the non fixed SDSS spectrum resolution in angstroms
+
+    flux_in = spec_data['flux'] * u.Unit('erg cm-2 s-1 AA-1')  # Flux
+    error = spec_data['ivar']  # Flux error
+
+    flags = spec_data['and_mask']  # Bitmask and mask map
+
+    ignored_flag_values = np.array([0, 4, 16, 131076])  # Pixels with these flags are not removed
+
+    bright_sky = np.argwhere(flags == 8388608)  # The bitmask for bright sky lines specifically
+    all_flags = np.argwhere(flags > 0)
+
+    #masked_flags = np.argwhere(np.isin(flags, ignored_flag_values, invert=True))
+    masked_flags = np.argwhere(np.isin(flags, bright_sky, invert=False))
+    # Swapping this out so only bright sky lines are masked for now
+
+    if Debug:
+        print(f"The bright sky flagged pixels are: {bright_sky}")
+        print(f"The pixels masked for any reason are: {masked_flags}")
+
+    all_flag_percentage = (len(all_flags) / len(lamb_observed)) * 100
+    counted_flag_percentage = (len(masked_flags) / len(lamb_observed)) * 100
+    # Calculates the percentage of pixels flagged relative to the full spectrum
+
+    for ii, item in enumerate(flux_in):  # This loops sets the flagged pixels to be nan
+        if ii in masked_flags:
+            flux_in[ii] = np.nan
+
+    flux = flux_in
+
+    ###########
+    # Redshift Correction
+    ###########
+
+    # Applies a spectral redshift correction
+    if z_correction_flag == 0:
+        lamb_rest = rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=z) * u.AA
+    else:
+        lamb_rest = lamb_observed
+
+    flux_mean = np.mean(flux)
+    flux -= flux_mean
+
+    lines_to_scale = lines_for_scoring()
+
+    scaled_flux = flux_scaler(flux, lamb_rest, lines_to_scale, 0.5)
+    scaled_flux_err = flux_scaler(error, lamb_rest, lines_to_scale, 0.5)
+
+    flux += flux_mean
+    scaled_flux += flux_mean
+
+    ###########
+    # Smoothing
+    ###########
+
+    if smoothing:  # If active runs a boxcar smooth, defaults to a width of 5 but can be set via the function call
+        smoothed_flux = convolve(scaled_flux, Box1DKernel(smoothing_boxcar))
+        flux = smoothed_flux
+
+    ###########
+    # Median Filter
+    ###########
+
+    if median_filter:  # If active runs a median filter smooth, defaults to a kernel size of 3 but can be set via the
+        # function call
+        filtered_flux = medfilt(flux, kernel_size=med_filter_kernel)
+        flux = filtered_flux
+
+    ###########
+    # Extinction Correction
+    ###########
+
+    # SDSS Extinction comes from the mean value of the per band extinctions converted using the constants given in the
+    # 2002 Early Data release paper - this uses the Schlegel, Finkbeiner and Davis dust maps
+
+    # New version of the extinction correction using the "dust_extinction" package
+    if extinction_correction_flag == 0:
+        extinction_model = F99(Rv=3.1)
+        flux_extinction_corrected = flux / extinction_model.extinguish(
+            lamb_observed, Ebv=extinction
+        )
+        flux = flux_extinction_corrected
+
+    if flag_check:  # If active displays the flagged pixels and the associated wavelengths
+
+        for ii, item in enumerate(flux):
+            print(format(flags[ii], '031b'))
+            print(lamb_rest[ii])
+
+    return lamb_rest, flux, error, spec_res, flags, masked_flags, all_flag_percentage, counted_flag_percentage
 
 """DESI specific functions"""
 

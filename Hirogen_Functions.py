@@ -1271,7 +1271,7 @@ def sdss_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
     return lamb_rest, flux, error, spec_res, flags, masked_flags, all_flag_percentage, counted_flag_percentage
 
 
-def sdss_spectrum_reader_and_scaler(filepath, z, extinction, smoothing=True, smoothing_boxcar=5,
+def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoothing=True, smoothing_boxcar=5,
                          median_filter=False, med_filter_kernel=3, header_print=False, flag_check=False,
                          z_correction_flag=0, extinction_correction_flag=0):
     """Reads in and does initial processing on SDSS spectra"""
@@ -1331,18 +1331,19 @@ def sdss_spectrum_reader_and_scaler(filepath, z, extinction, smoothing=True, smo
 
     lines_to_scale = lines_for_scoring()
 
-    scaled_flux = flux_scaler(flux, lamb_rest, lines_to_scale, 0.5)
-    scaled_flux_err = flux_scaler(error, lamb_rest, lines_to_scale, 0.5)
+    scaled_flux = flux_scaler(flux, lamb_rest, lines_to_scale, scale_factor)
+    scaled_flux_err = flux_scaler(error, lamb_rest, lines_to_scale, scale_factor)
 
-    flux += flux_mean
     scaled_flux += flux_mean
+
+    flux = scaled_flux
 
     ###########
     # Smoothing
     ###########
 
     if smoothing:  # If active runs a boxcar smooth, defaults to a width of 5 but can be set via the function call
-        smoothed_flux = convolve(scaled_flux, Box1DKernel(smoothing_boxcar))
+        smoothed_flux = convolve(flux, Box1DKernel(smoothing_boxcar))
         flux = smoothed_flux
 
     ###########

@@ -130,6 +130,8 @@ dmypy.json
 
 # Data files
 *.fits
+*.csv
+*.txt
 
 # Bash Scripts
 *.sh
@@ -137,3 +139,4 @@ dmypy.json
 # Directories
 dr16/
 Hirogen_Outputs/
+Utility_Files/

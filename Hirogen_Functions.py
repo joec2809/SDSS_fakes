@@ -186,6 +186,17 @@ def lines_for_scoring():
 
     return spectral_lines_for_scoring_air
 
+def lines_for_scaling():
+    """The lines the are scaled to create fake spectra for rate calculation"""
+    spectral_lines_for_scaling_air = [
+        '[FeVII]6088',
+        '[FeX]6376',
+        '[FeXI]7894',
+        '[FeXIV]5304' 
+    ]
+
+    return spectral_lines_for_scaling_air
+
 
 def primary_lines():
     """The lines of primary interest and those which are included in the main snapshot plot"""
@@ -1329,7 +1340,7 @@ def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoot
     flux_mean = np.mean(flux)
     flux -= flux_mean
 
-    lines_to_scale = lines_for_scoring()
+    lines_to_scale = lines_for_scaling()
 
     scaled_flux = flux_scaler(flux, lamb_rest, lines_to_scale, scale_factor)
     scaled_flux_err = flux_scaler(error, lamb_rest, lines_to_scale, scale_factor)

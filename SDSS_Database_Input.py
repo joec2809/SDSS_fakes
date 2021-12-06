@@ -17,8 +17,8 @@ np.seterr(invalid='raise')
 ##########################
 
 User = 'Joe'
-Input_Data_File = "results.csv"
-TableID = "SDSS_scaled_objects"
+Input_Data_File = "MyResult_20211028.csv"
+TableID = "SDSS_Confirmed_Objects"
 
 # Input_Data_File = "MyResult_2021615_RA_Above_20_Dec_Above_10_25000.csv"
 # Input_Data_File = "MyResult_2021615_RA_Above_20_Dec_Below_10_25000.csv"

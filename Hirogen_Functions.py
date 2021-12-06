@@ -39,7 +39,6 @@ if NERSC:
 
 
 def user_config(user):
-
     if user == 'Peter':
         database_name = 'CoronalLineGalaxies'
         database_user = 'root'
@@ -47,16 +46,16 @@ def user_config(user):
         # Likely not the best idea to have the password essentially public but its not like its actually sensitive info
 
         # Used only in SDSS mode
-        #main_spectra_path = '/Volumes/GoogleDrive/My Drive/TDE_Project/Coronal_Line_Galaxies/Existing_Sample_Data/SDSS_Spectra_DR16'
+        # main_spectra_path = '/Volumes/GoogleDrive/My Drive/TDE_Project/Coronal_Line_Galaxies/Existing_Sample_Data/SDSS_Spectra_DR16'
         main_spectra_path = f"/Volumes/GoogleDrive/My Drive/TDE_Project/Coronal_Line_Galaxies"
         # main_spectra_path = f"/Volumes/GoogleDrive/My Drive/TDE_Project/Changing_Look_QSOs/Followup/dr16/eboss/spectro/redux/v5_13_0/spectra/lite"
 
     elif user == 'Joe':
         # Add your paths + details here when you have them set up!
-        database_name = 'coronal_line_galaxies' # Not the specific database table name
+        database_name = 'coronal_line_galaxies'  # Not the specific database table name
         database_user = 'root'
         database_password = 'C5bhRxH4TKzZ9bhSgAfd'
-        main_spectra_path = '.' # This should be the folder than contains the dr16 folder from the download script
+        main_spectra_path = '.'  # This should be the folder than contains the dr16 folder from the download script
 
     else:
         print('User not recognised - please configure your details and paths in the Hirogen_Functions.py file.')
@@ -68,6 +67,7 @@ def user_config(user):
 def main_config():
     """ This function defines criteria used by all parts of Hirogen to ensure consistency"""
 
+    # These four parameters control what regions of the spectra are 'cut out' for analysis around each line
     lower_wave_region = 125
     upper_wave_region = 125
 
@@ -106,6 +106,7 @@ def main_config():
     # line_peak_region_min_threshold = 0.93
     line_peak_region_min_threshold = -0.3  # This is for DESI
 
+    # Thresholds for identifying strong lines. First is overall line strength, second is for detecting sharp peaks
     strong_eqw_threshold = -7.5
     strong_peak_max_threshold = 2
 
@@ -196,7 +197,6 @@ def lines_for_scaling():
     ]
 
     return spectral_lines_for_scaling_air
-
 
 def primary_lines():
     """The lines of primary interest and those which are included in the main snapshot plot"""
@@ -473,6 +473,35 @@ def interesting_line_labels():
         r'[FeXIV] $\lambda$ 5304 $\AA$',
 
         r'[SII] $\lambda$$\lambda$ 6716, 6731 $\AA$'
+    ]
+    return line_labels_interesting
+
+
+def interesting_line_labels_short():
+    line_labels_interesting = [
+
+        r'H$\alpha$',
+        r'H$\beta$',
+        r'H$\gamma$',
+        r'H$\delta$',
+
+        r'HeI4478',
+        r'HeII4686',
+
+        r'[OI]6300',
+        r'[OII]3728',
+        r'[OIII]4959',
+        r'[OIII]5007',
+
+        r'[FeVII]3759',
+        r'[FeVII]5160',
+        r'[FeVII]5722',
+        r'[FeVII]6088',
+        r'[FeX]6376',
+        r'[FeXI]7894',
+        r'[FeXIV]5304',
+
+        r'[SII]6716,6731'
     ]
     return line_labels_interesting
 
@@ -1050,7 +1079,8 @@ def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_box
     flux_err = spectrum[2] * 1e17
 
     # The multiplication factors are to convert into the default SDSS data format where these are baked into the data
-    # This allows for easier direct comparisons between original and follow up spectra
+    # This allows for easier direct comparisons between original and follow up spectra - these may need to be removed
+    # if the spectrum already has these factors included e.g. DESI spectra
 
     lamb_observed = wave * u.AA
     spec_res = (lamb_observed[1] - lamb_observed[0])  # Assumes that the file has a fixed wavelength resolution
@@ -1197,23 +1227,23 @@ def sdss_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
     if header_print:
         print(spec_header)
 
-    spec_data = spectrum[1]
+    data = spectrum[1]
 
-    lamb_observed = 10 ** spec_data['loglam'] * u.AA  # Observed wavelength
+    lamb_observed = 10 ** data['loglam'] * u.AA  # Observed wavelength
     spec_res = lamb_observed[1] - lamb_observed[0]  # Spectral resolution
     # This is VERY rough currently given the non fixed SDSS spectrum resolution in angstroms
 
-    flux_in = spec_data['flux'] * u.Unit('erg cm-2 s-1 AA-1')  # Flux
-    error = spec_data['ivar']  # Flux error
+    flux_in = data['flux'] * u.Unit('erg cm-2 s-1 AA-1')  # Flux
+    error = data['ivar']  # Flux error
 
-    flags = spec_data['and_mask']  # Bitmask and mask map
+    flags = data['and_mask']  # Bitmask and mask map
 
     ignored_flag_values = np.array([0, 4, 16, 131076])  # Pixels with these flags are not removed
 
     bright_sky = np.argwhere(flags == 8388608)  # The bitmask for bright sky lines specifically
     all_flags = np.argwhere(flags > 0)
 
-    #masked_flags = np.argwhere(np.isin(flags, ignored_flag_values, invert=True))
+    # masked_flags = np.argwhere(np.isin(flags, ignored_flag_values, invert=True))
     masked_flags = np.argwhere(np.isin(flags, bright_sky, invert=False))
     # Swapping this out so only bright sky lines are masked for now
 
@@ -1348,6 +1378,7 @@ def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoot
     scaled_flux += flux_mean
 
     flux = scaled_flux
+    error = scaled_flux_err
 
     ###########
     # Smoothing
@@ -1409,170 +1440,170 @@ def DESI_check_env():
 
 
 def desi_datafile_reader(file):
-    """Processes the Hirogen analysis file making its contents available to the current file"""
+    """Processes the Hirogen analysis output file making its contents available to the current file"""
 
-    spec_data = np.genfromtxt(file, unpack=True, comments='#', dtype=str, delimiter="\t", skip_header=1)
+    data = np.genfromtxt(file, unpack=True, comments='#', dtype=str, delimiter="\t", skip_header=1)
 
     # ID
-    col1 = spec_data[0].astype(int)
+    col1 = data[0].astype(int)
 
     # Date
-    col2 = spec_data[1].astype(int)
+    col2 = data[1].astype(int)
 
     # Tile
-    col3 = spec_data[2].astype(int)
+    col3 = data[2].astype(int)
 
     # Petal
-    col4 = spec_data[3].astype(int)
+    col4 = data[3].astype(int)
 
     # Fiber
-    col5 = spec_data[4].astype(int)
+    col5 = data[4].astype(int)
 
     # FiberStatus
-    col6 = spec_data[5].astype(int)
+    col6 = data[5].astype(int)
 
     # Perfile Index
-    col7 = spec_data[6].astype(int)
+    col7 = data[6].astype(int)
 
     # RA + DEC
-    col8 = (np.array(spec_data[7])).astype(float)
-    col9 = (np.array(spec_data[8])).astype(float)
+    col8 = (np.array(data[7])).astype(float)
+    col9 = (np.array(data[8])).astype(float)
 
     # Redshift + Err
-    col10 = (np.array(spec_data[9])).astype(float)
-    col11 = (np.array(spec_data[10])).astype(float)
+    col10 = (np.array(data[9])).astype(float)
+    col11 = (np.array(data[10])).astype(float)
 
     # EBV
-    col12 = (np.array(spec_data[11])).astype(float)
+    col12 = (np.array(data[11])).astype(float)
 
     # line pEQWs
 
     # Balmer
-    col13 = (np.array(spec_data[12])).astype(float)
-    col14 = (np.array(spec_data[13])).astype(float)
-    col15 = (np.array(spec_data[14])).astype(float)
-    col16 = (np.array(spec_data[15])).astype(float)
+    col13 = (np.array(data[12])).astype(float)
+    col14 = (np.array(data[13])).astype(float)
+    col15 = (np.array(data[14])).astype(float)
+    col16 = (np.array(data[15])).astype(float)
 
     # NII
-    col17 = (np.array(spec_data[16])).astype(float)
-    col18 = (np.array(spec_data[17])).astype(float)
+    col17 = (np.array(data[16])).astype(float)
+    col18 = (np.array(data[17])).astype(float)
 
     # Fe
-    col19 = (np.array(spec_data[18])).astype(float)
-    col20 = (np.array(spec_data[19])).astype(float)
-    col21 = (np.array(spec_data[20])).astype(float)
-    col22 = (np.array(spec_data[21])).astype(float)
-    col23 = (np.array(spec_data[22])).astype(float)
-    col24 = (np.array(spec_data[23])).astype(float)
-    col25 = (np.array(spec_data[24])).astype(float)
+    col19 = (np.array(data[18])).astype(float)
+    col20 = (np.array(data[19])).astype(float)
+    col21 = (np.array(data[20])).astype(float)
+    col22 = (np.array(data[21])).astype(float)
+    col23 = (np.array(data[22])).astype(float)
+    col24 = (np.array(data[23])).astype(float)
+    col25 = (np.array(data[24])).astype(float)
 
     # O
-    col26 = (np.array(spec_data[25])).astype(float)
-    col27 = (np.array(spec_data[26])).astype(float)
-    col28 = (np.array(spec_data[27])).astype(float)
-    col29 = (np.array(spec_data[28])).astype(float)
+    col26 = (np.array(data[25])).astype(float)
+    col27 = (np.array(data[26])).astype(float)
+    col28 = (np.array(data[27])).astype(float)
+    col29 = (np.array(data[28])).astype(float)
 
     # He
-    col30 = (np.array(spec_data[29])).astype(float)
-    col31 = (np.array(spec_data[30])).astype(float)
+    col30 = (np.array(data[29])).astype(float)
+    col31 = (np.array(data[30])).astype(float)
 
     # NaID
-    col32 = (np.array(spec_data[31])).astype(float)
+    col32 = (np.array(data[31])).astype(float)
 
     # S
-    col33 = (np.array(spec_data[32])).astype(float)
-    col34 = (np.array(spec_data[33])).astype(float)
-    col35 = (np.array(spec_data[34])).astype(float)
+    col33 = (np.array(data[32])).astype(float)
+    col34 = (np.array(data[33])).astype(float)
+    col35 = (np.array(data[34])).astype(float)
 
     # line Fluxes
 
     # Balmer
-    col36 = (np.array(spec_data[35])).astype(float)
-    col37 = (np.array(spec_data[36])).astype(float)
-    col38 = (np.array(spec_data[37])).astype(float)
-    col39 = (np.array(spec_data[38])).astype(float)
+    col36 = (np.array(data[35])).astype(float)
+    col37 = (np.array(data[36])).astype(float)
+    col38 = (np.array(data[37])).astype(float)
+    col39 = (np.array(data[38])).astype(float)
 
     # NII
-    col40 = (np.array(spec_data[39])).astype(float)
-    col41 = (np.array(spec_data[40])).astype(float)
+    col40 = (np.array(data[39])).astype(float)
+    col41 = (np.array(data[40])).astype(float)
 
     # Fe
-    col42 = (np.array(spec_data[41])).astype(float)
-    col43 = (np.array(spec_data[42])).astype(float)
-    col44 = (np.array(spec_data[43])).astype(float)
-    col45 = (np.array(spec_data[44])).astype(float)
-    col46 = (np.array(spec_data[45])).astype(float)
-    col47 = (np.array(spec_data[46])).astype(float)
-    col48 = (np.array(spec_data[47])).astype(float)
+    col42 = (np.array(data[41])).astype(float)
+    col43 = (np.array(data[42])).astype(float)
+    col44 = (np.array(data[43])).astype(float)
+    col45 = (np.array(data[44])).astype(float)
+    col46 = (np.array(data[45])).astype(float)
+    col47 = (np.array(data[46])).astype(float)
+    col48 = (np.array(data[47])).astype(float)
 
     # O
-    col49 = (np.array(spec_data[48])).astype(float)
-    col50 = (np.array(spec_data[49])).astype(float)
-    col51 = (np.array(spec_data[50])).astype(float)
-    col52 = (np.array(spec_data[51])).astype(float)
+    col49 = (np.array(data[48])).astype(float)
+    col50 = (np.array(data[49])).astype(float)
+    col51 = (np.array(data[50])).astype(float)
+    col52 = (np.array(data[51])).astype(float)
 
     # He
-    col53 = (np.array(spec_data[52])).astype(float)
-    col54 = (np.array(spec_data[53])).astype(float)
+    col53 = (np.array(data[52])).astype(float)
+    col54 = (np.array(data[53])).astype(float)
 
     # NaID
-    col55 = (np.array(spec_data[54])).astype(float)
+    col55 = (np.array(data[54])).astype(float)
 
     # S
-    col56 = (np.array(spec_data[55])).astype(float)
-    col57 = (np.array(spec_data[56])).astype(float)
-    col58 = (np.array(spec_data[57])).astype(float)
+    col56 = (np.array(data[55])).astype(float)
+    col57 = (np.array(data[56])).astype(float)
+    col58 = (np.array(data[57])).astype(float)
 
     # Ratios
-    col59 = (np.array(spec_data[58])).astype(float)
-    col60 = (np.array(spec_data[59])).astype(float)
-    col61 = (np.array(spec_data[60])).astype(float)
-    col62 = (np.array(spec_data[61])).astype(float)
-    col63 = (np.array(spec_data[62])).astype(float)
-    col64 = (np.array(spec_data[63])).astype(float)
+    col59 = (np.array(data[58])).astype(float)
+    col60 = (np.array(data[59])).astype(float)
+    col61 = (np.array(data[60])).astype(float)
+    col62 = (np.array(data[61])).astype(float)
+    col63 = (np.array(data[62])).astype(float)
+    col64 = (np.array(data[63])).astype(float)
 
     # Lick Indices
-    col65 = (np.array(spec_data[64])).astype(float)
-    col66 = (np.array(spec_data[65])).astype(float)
-    col67 = (np.array(spec_data[66])).astype(float)
-    col68 = (np.array(spec_data[67])).astype(float)
-    col69 = (np.array(spec_data[68])).astype(float)
-    col70 = (np.array(spec_data[69])).astype(float)
+    col65 = (np.array(data[64])).astype(float)
+    col66 = (np.array(data[65])).astype(float)
+    col67 = (np.array(data[66])).astype(float)
+    col68 = (np.array(data[67])).astype(float)
+    col69 = (np.array(data[68])).astype(float)
+    col70 = (np.array(data[69])).astype(float)
 
     # Flags
-    col71 = (np.array(spec_data[70])).astype(int)
-    col72 = (np.array(spec_data[71])).astype(int)
-    col73 = (np.array(spec_data[72])).astype(int)
-    col74 = (np.array(spec_data[73])).astype(int)
-    col75 = (np.array(spec_data[74])).astype(int)
-    col76 = (np.array(spec_data[75])).astype(int)
-    col77 = (np.array(spec_data[76])).astype(int)
+    col71 = (np.array(data[70])).astype(int)
+    col72 = (np.array(data[71])).astype(int)
+    col73 = (np.array(data[72])).astype(int)
+    col74 = (np.array(data[73])).astype(int)
+    col75 = (np.array(data[74])).astype(int)
+    col76 = (np.array(data[75])).astype(int)
+    col77 = (np.array(data[76])).astype(int)
 
     # Pixel / Spectrum Quality Information
-    col78 = (np.array(spec_data[77])).astype(float)
-    col79 = (np.array(spec_data[78])).astype(float)
+    col78 = (np.array(data[77])).astype(float)
+    col79 = (np.array(data[78])).astype(float)
 
     # ECLE Score
-    col80 = (np.array(spec_data[79])).astype(int)
+    col80 = (np.array(data[79])).astype(int)
 
     # Flux Data - Uses FiberFluxes but FLUX_IVAR
     # G
-    col81 = (np.array(spec_data[80])).astype(float)
-    col82 = (np.array(spec_data[81])).astype(float)
+    col81 = (np.array(data[80])).astype(float)
+    col82 = (np.array(data[81])).astype(float)
     # R
-    col83 = (np.array(spec_data[82])).astype(float)
-    col84 = (np.array(spec_data[83])).astype(float)
+    col83 = (np.array(data[82])).astype(float)
+    col84 = (np.array(data[83])).astype(float)
     # Z
-    col85 = (np.array(spec_data[84])).astype(float)
-    col86 = (np.array(spec_data[85])).astype(float)
+    col85 = (np.array(data[84])).astype(float)
+    col86 = (np.array(data[85])).astype(float)
 
     # WISE
     # W1
-    col87 = (np.array(spec_data[86])).astype(float)
-    col88 = (np.array(spec_data[87]))
+    col87 = (np.array(data[86])).astype(float)
+    col88 = (np.array(data[87]))
     # W2
-    col89 = (np.array(spec_data[88])).astype(float)
-    col90 = (np.array(spec_data[89]))
+    col89 = (np.array(data[88])).astype(float)
+    col90 = (np.array(data[89]))
 
     for ii, item in enumerate(col88):
         if col88[ii] == '--':
@@ -1584,10 +1615,10 @@ def desi_datafile_reader(file):
     col90 = col90.astype(float)
 
     # Spectrum ID Key
-    col91 = spec_data[90]
+    col91 = data[90]
 
     # Settings Config Store
-    col92 = spec_data[91]
+    col92 = data[91]
 
     return \
         col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, \
@@ -1596,6 +1627,81 @@ def desi_datafile_reader(file):
         col47, col48, col49, col50, col51, col52, col53, col54, col55, col56, col57, col58, col59, col60, col61, \
         col62, col63, col64, col65, col66, col67, col68, col69, col70, col71, col72, col73, col74, col75, col76, \
         col77, col78, col79, col80, col81, col82, col83, col84, col85, col86, col87, col88, col89, col90, col91, col92
+
+
+def desi_datafile_pre_Hirogen_analysis_reader(file):
+    """Processes the pre-Hirogen analysis metafile making its contents available to the current file"""
+
+    data = np.genfromtxt(file, unpack=True, comments='#', dtype=str, delimiter="\t", skip_header=1)
+
+    # ID
+    col1 = data[0].astype(int)
+
+    # Date
+    col2 = data[1].astype(int)
+
+    # Tile
+    col3 = data[2].astype(int)
+
+    # PETAL
+    col4 = data[3].astype(int)
+
+    # FIBER
+    col5 = data[4].astype(int)
+
+    # FIBER_STATUS
+    col6 = data[5].astype(int)
+
+    # SPECTRUM_NUMBER
+    col7 = data[6].astype(int)
+
+    # RA
+    col8 = data[7].astype(float)
+
+    # DEC
+    col9 = data[8].astype(float)
+
+    # REDSHIFT
+    col10 = data[9].astype(float)
+
+    # REDSHIFT_ERR
+    col11 = data[10].astype(float)
+
+    # EBV
+    col12 = data[11].astype(float)
+
+    # GFiberFlux
+    col13 = data[12].astype(float)
+
+    # GFiberIvar
+    col14 = data[13].astype(float)
+
+    # RFiberFlux
+    col15 = data[14].astype(float)
+
+    # RFiberIvar
+    col16 = data[15].astype(float)
+
+    # ZFiberFlux
+    col17 = data[16].astype(float)
+
+    # ZFiberIvar
+    col18 = data[17].astype(float)
+
+    # W1Flux
+    col19 = data[18].astype(float)
+
+    # W1Ivar
+    col20 = data[19].astype(float)
+
+    # W2Flux
+    col21 = data[20].astype(float)
+
+    # W2Ivar
+    col22 = data[21].astype(float)
+
+    return col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, \
+           col17, col18, col19, col20, col21, col22
 
 
 """Tools"""
@@ -1646,6 +1752,28 @@ def gaussian_smoothing(flux, sigma_value=2):
 
 def spectres_rebin(flux, wave, desired_res):
 
+    if len(wave) != len(flux):
+        print('The lengths of the wave and flux array do not match.\nPlease check and try again')
+        print(f'Wave:{len(wave)}\tFlux:{len(flux)}')
+        sys.exit()
+
+    rounded_wave_start = round_down_to_nearest(wave[0], desired_res)
+    rounded_wave_end = round_up_to_nearest(wave[-1], desired_res)
+
+    lin_space_value = int(((rounded_wave_end - rounded_wave_start) / desired_res) + 1)
+    rebinned_wave = np.linspace(rounded_wave_start, rounded_wave_end, lin_space_value)
+
+    rebinned_flux = spectres.spectres(new_wavs=rebinned_wave,
+                                      spec_wavs=wave,
+                                      spec_fluxes=flux,
+                                      fill=0)
+
+    return rebinned_flux, rebinned_wave
+
+
+# Spectral rebinning with spectres
+
+def spectres_rebin(flux, wave, desired_res):
     if len(wave) != len(flux):
         print('The lengths of the wave and flux array do not match.\nPlease check and try again')
         print(f'Wave:{len(wave)}\tFlux:{len(flux)}')

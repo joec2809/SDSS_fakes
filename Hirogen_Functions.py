@@ -52,7 +52,7 @@ def user_config(user):
 
     elif user == 'Joe':
         # Add your paths + details here when you have them set up!
-        database_name = 'coronal_line_galaxies'  # Not the specific database table name
+        database_name = 'CoronalLineGalaxies'  # Not the specific database table name
         database_user = 'root'
         database_password = 'C5bhRxH4TKzZ9bhSgAfd'
         main_spectra_path = '.'  # This should be the folder than contains the dr16 folder from the download script
@@ -653,8 +653,36 @@ def continua_maker(spec_region, flux, line_name, line_loc, object_name):
 
 
 def flux_scaler(flux, wavelengths, line_names, scale_value):
+    object_name = ''
+    flux_without_peaks = np.zeros(len(flux))
     scale_array = np.ones(len(flux))
     lines = lines_for_analysis()
+    for ii, item in enumerate(lines):
+        if item in line_names:
+            line_location = lines[item][0]
+            shift = (((np.array(wavelengths) * c) / line_location) - c)
+            shift_region, wave_region, flux_region, error_region = region_cutter(
+                    shift, 
+                    wavelengths,
+                    flux*u.Unit('erg cm-2 s-1 AA-1'),
+                    line_location - 40,
+                    line_location + 40,
+                    mode='Wavelength'
+                )
+            continuum = continua_maker(
+                    wave_region,
+                    flux_region,
+                    # shift=Shift_Region,
+                    item,
+                    line_location,
+                    object_name
+                )
+            peak_start = find_nearest(wavelengths, continuum[2][0])
+            flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
+
+    
+    flux -= flux_without_peaks
+
     for i, name in enumerate(line_names):
         line = lines[name]
         line_location = line[0]
@@ -662,10 +690,11 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
             if wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] >= 0: 
                 scale_array[i] = scale_value
             elif wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] < 0: 
-                scale_array[i] = 1/scale_value   
+                scale_array[i] = 1/scale_value
     scaled_flux = flux*scale_array
+    scaled_flux += flux_without_peaks
+    flux += flux_without_peaks
     return scaled_flux
-
 
 def eqw_finder(flux, continuum, xaxis, object_name, start="A", stop="B", xstep="C"):
     """Equivalent Width Finder - Configured for specifically for Hirogen - An older version that is not currently in use
@@ -1315,7 +1344,7 @@ def sdss_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
 def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoothing=True, smoothing_boxcar=5,
                          median_filter=False, med_filter_kernel=3, header_print=False, flag_check=False,
                          z_correction_flag=0, extinction_correction_flag=0):
-    """Reads in and does initial processing on SDSS spectra"""
+    """Reads in, does initial processing on and scales SDSS spectra"""
 
     spectrum = spec_reader(filepath=filepath)
     spec_header = spectrum[0]
@@ -1367,15 +1396,11 @@ def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoot
     else:
         lamb_rest = lamb_observed
 
-    flux_mean = np.mean(flux)
-    flux -= flux_mean
-
     lines_to_scale = lines_for_scaling()
 
     scaled_flux = flux_scaler(flux, lamb_rest, lines_to_scale, scale_factor)
     scaled_flux_err = flux_scaler(error, lamb_rest, lines_to_scale, scale_factor)
 
-    scaled_flux += flux_mean
 
     flux = scaled_flux
     error = scaled_flux_err
@@ -2084,6 +2109,15 @@ def round_up_to_nearest(x, a):
 
 def round_down_to_nearest(x, a):
     return math.floor(x / a) * a
+
+
+########################################################################
+# Find index of value in array closest to given value
+########################################################################
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
 
 
 ########################

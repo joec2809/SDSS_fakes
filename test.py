@@ -1,9 +1,7 @@
 import numpy as np
 
-array = np.zeros(100)
+from astropy import units as u
 
-array_2 = np.ones(25)
+arr = np.arange(1,10,1)*u.Unit('m s-1')
 
-array[50:75] = array_2
-
-print(array)
+print(type(arr.value))

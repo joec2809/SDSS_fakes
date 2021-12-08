@@ -664,7 +664,7 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
             shift_region, wave_region, flux_region, error_region = region_cutter(
                     shift, 
                     wavelengths,
-                    flux*u.Unit('erg cm-2 s-1 AA-1'),
+                    flux,
                     line_location - 40,
                     line_location + 40,
                     mode='Wavelength'
@@ -679,9 +679,8 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
                 )
             peak_start = find_nearest(wavelengths, continuum[2][0])
             flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
-
     
-    flux -= flux_without_peaks
+    flux = flux.value - flux_without_peaks
 
     for i, name in enumerate(line_names):
         line = lines[name]
@@ -1359,7 +1358,7 @@ def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoot
     # This is VERY rough currently given the non fixed SDSS spectrum resolution in angstroms
 
     flux_in = spec_data['flux'] * u.Unit('erg cm-2 s-1 AA-1')  # Flux
-    error = spec_data['ivar']  # Flux error
+    error = spec_data['ivar'] * u.Unit('erg cm-2 s-1 AA-1') # Flux error
 
     flags = spec_data['and_mask']  # Bitmask and mask map
 
@@ -1385,7 +1384,7 @@ def sdss_spectrum_reader_and_scaler(filepath, z, extinction, scale_factor, smoot
             flux_in[ii] = np.nan
 
     flux = flux_in
-
+   
     ###########
     # Redshift Correction
     ###########

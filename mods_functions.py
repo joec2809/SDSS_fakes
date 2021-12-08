@@ -39,8 +39,7 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
             peak_start = find_nearest(wavelengths, continuum[2][0])
             flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
 
-    
-    flux -= flux_without_peaks
+    flux = flux_without_peaks
 
     for i, name in enumerate(line_names):
         line = lines[name]

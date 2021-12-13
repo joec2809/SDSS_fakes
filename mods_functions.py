@@ -54,14 +54,14 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
     flux += flux_without_peaks
     return scaled_flux
 
-def fits_file_gen(wave, flux, flux_err, filename):
+def fits_file_gen(wave, flux, flux_err, filename, scale_factor):
     hdu = fits.BinTableHDU.from_columns(
         [fits.Column(name='flux', format='E', array = flux),
         fits.Column(name='loglam', format='E', array = wave),
         fits.Column(name = 'ivar', format = 'E', array = flux_err)]
     )
 
-    hdu.writeto(f"scaled_{filename}", overwrite = True)
+    hdu.writeto(f"{filename}_scaled_{scale_factor}", overwrite = True)
     
     return None
 

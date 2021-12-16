@@ -235,6 +235,11 @@ filenames = Hirogen_Functions.sdss_spectra_file_path_generator(
     Path_Override_Flag, Path_Override
 )
 
+savepaths = Hirogen_Functions.sdss_spectra_file_path_generator(
+            Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D,
+            Path_Override_Flag, Path_Override, scaled_spectra=True,
+        )
+
 for i, object in enumerate(Candidate_Data):
 
     with fits.open(filenames[i], comments='#') as hdul:
@@ -267,13 +272,9 @@ for i, object in enumerate(Candidate_Data):
         s_flux = mods_functions.flux_scaler(flux_to_scale, lamb_rest, lines_to_scale, scale_factor)
         s_flux_err = mods_functions.flux_scaler(flux_err, lamb_rest, lines_to_scale, scale_factor)
 
-        save_name = f"spec-{Plate[i]}-{MJD[i]}-{FiberID[i]}-{int(scale_factor*10)}.fits"
-
-        
         scale_ID = DR16_SpectroscopicID[i] + decimal.Decimal(scale_factor)
-        
 
-        #mods_functions.fits_file_gen(wave, s_flux, s_flux_err, save_name, scale_factor)
+        mods_functions.fits_file_gen(wave, s_flux, s_flux_err, savepaths[7*i+j])
 
         cmd = f"INSERT IGNORE INTO `{Database}`.`{Spectra_TableID}` (DR16_Spectroscopic_ID) " \
                 f"VALUES ({scale_ID});"

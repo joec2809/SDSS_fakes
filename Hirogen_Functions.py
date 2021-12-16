@@ -1060,7 +1060,7 @@ def spec_reader_fits(filepath, verbose=False):
 
 
 def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_id_list, survey_list, run2d_list,
-                                     override_path_flag_list=[], override_path_list=[]):
+                                     override_path_flag_list=[], override_path_list=[], scaled_spectra = False):
     """Generates the filepaths for the SDSS spectra assuming they follow the standard file structure from the direct
     download"""
 
@@ -1070,24 +1070,50 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
 
         if override_path_flag_list[ii] == 0:
 
-            if survey_list[ii] in ['sdss', 'segue1', 'segue2']:
+            if scaled_spectra == True:
 
-                file_paths.append(
-                    f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
-                    f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
-                )
+                scale_factors = np.arange(1,10,1)
 
-            elif survey_list[ii] in ['eboss', 'boss']:
+                for jj, scale_factor in enumerate(scale_factors):
 
-                file_paths.append(
-                    f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
-                    f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
-                )
+                    if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+
+                        file_paths.append(
+                            f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                            f"scaled-spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-{scale_factor}.fits"
+                        )
+
+                    elif survey_list[ii] in ['eboss', 'boss']:
+                    
+                        file_paths.append(
+                            f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                            f"scaled-spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-{scale_factor[jj]}.fits"
+                        )
+
+                    else:
+                        print("Not sure how to handle this survey - exiting for now")
+                        print(f"{ii}\t{survey_list[ii]}")
+                        sys.exit()
 
             else:
-                print("Not sure how to handle this survey - exiting for now")
-                print(f"{ii}\t{survey_list[ii]}")
-                sys.exit()
+                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+
+                    file_paths.append(
+                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
+                    )
+
+                elif survey_list[ii] in ['eboss', 'boss']:
+                
+                    file_paths.append(
+                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
+                    )
+
+                else:
+                    print("Not sure how to handle this survey - exiting for now")
+                    print(f"{ii}\t{survey_list[ii]}")
+                    sys.exit()
 
         else:
             file_paths.append(

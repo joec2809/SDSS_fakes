@@ -54,12 +54,33 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
     flux += flux_without_peaks
     return scaled_flux
 
-def fits_file_gen(wave, flux, flux_err, filepath):
+def fits_file_gen(wave, flux, flux_err, Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D,
+            Path_Override_Flag, Path_Override, Scale_Factor):
+
     hdu = fits.BinTableHDU.from_columns(
         [fits.Column(name='flux', format='E', array = flux),
         fits.Column(name='loglam', format='E', array = wave),
         fits.Column(name = 'ivar', format = 'E', array = flux_err)]
     )
+
+    if Path_Override_Flag == 0:
+
+        if Survey in ['sdss', 'segue1', 'segue2']:             
+
+            filepath = f"{Main_Spectra_Path}/dr16/sdss/spectro/redux/{Run2D}/spectra/{Plate}/spec-{Plate}-{MJD}-{FiberID}-{Scale_Factor}.fits"
+                            
+
+        elif Survey in ['eboss', 'boss']:
+        
+            filepath = f"{Main_Spectra_Path}/dr16/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}-{Scale_Factor}.fits"
+
+        else:
+            print("Not sure how to handle this survey - exiting for now")
+            print(f"{Survey}")
+            sys.exit()
+    
+    else:
+        filepath = f"{Path_Override}"
 
     hdu.writeto(f"{filepath}", overwrite = True)
     

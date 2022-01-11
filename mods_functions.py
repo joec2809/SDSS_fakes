@@ -54,13 +54,14 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
     flux += flux_without_peaks
     return scaled_flux
 
-def fits_file_gen(wave, flux, flux_err, Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D,
+def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D,
             Path_Override_Flag, Path_Override, Scale_Factor):
 
     hdu = fits.BinTableHDU.from_columns(
         [fits.Column(name='flux', format='E', array = flux),
         fits.Column(name='loglam', format='E', array = wave),
-        fits.Column(name = 'ivar', format = 'E', array = flux_err)]
+        fits.Column(name = 'ivar', format = 'E', array = flux_err),
+        fits.Column(name = 'and_mask', format = 'E', array = flags)]
     )
 
     if Path_Override_Flag == 0:

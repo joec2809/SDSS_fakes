@@ -246,6 +246,7 @@ for i, object in enumerate(Candidate_Data):
     wave = np.array(spectrum_data['loglam'])
     flux = np.array(spectrum_data['flux'])
     flux_err = np.array(spectrum_data['ivar'])
+    flags = np.array(spectrum_data['and_mask'])
 
     flux_to_scale = flux
 
@@ -273,8 +274,8 @@ for i, object in enumerate(Candidate_Data):
             scale_ID += decimal.Decimal(scale_factor)
 
             # Save scaled fits file
-            mods_functions.fits_file_gen(wave, s_flux, s_flux_err, Main_Spectra_Path, Plate[i], MJD[i], FiberID[i], Survey[i], Run2D[i],
-            Path_Override_Flag[i], Path_Override, scale_factor)
+            mods_functions.fits_file_gen(wave, s_flux, s_flux_err, flags, Main_Spectra_Path, Plate[i], MJD[i], FiberID[i], Survey[i], Run2D[i],
+            Path_Override_Flag[i], Path_Override[i], scale_factor)
 
         cmd = f"INSERT IGNORE INTO `{Database}`.`{Spectra_TableID}` (DR16_Spectroscopic_ID) " \
                 f"VALUES ({scale_ID});"

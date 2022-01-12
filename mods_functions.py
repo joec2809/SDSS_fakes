@@ -39,16 +39,14 @@ def flux_scaler(flux, wavelengths, line_names, scale_value):
             peak_start = find_nearest(wavelengths, continuum[2][0])
             flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
 
-    flux = flux_without_peaks
+    flux -= flux_without_peaks
 
     for i, name in enumerate(line_names):
         line = lines[name]
         line_location = line[0]
         for i, x in enumerate(scale_array):
-            if wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] >= 0: 
+            if wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12: 
                 scale_array[i] = scale_value
-            elif wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] < 0: 
-                scale_array[i] = 1/scale_value
     scaled_flux = flux*scale_array
     scaled_flux += flux_without_peaks
     flux += flux_without_peaks

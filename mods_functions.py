@@ -10,6 +10,81 @@ from astropy import units as u
 
 c = constants.value('speed of light in vacuum') / 1000
 
+def peak_selector(flux, wavelengths, line_names):
+    object_name = ''
+    flux_without_peaks = np.zeros(len(flux))
+    flux_continua = np.zeros(len(flux))
+    for i, value in enumerate(flux):
+        flux_without_peaks[i] = value
+    lines = Hirogen_Functions.lines_for_analysis()
+    for ii, item in enumerate(lines):
+        if item in line_names:
+            line_location = lines[item][0]
+            shift = (((np.array(wavelengths) * c) / line_location) - c)
+            shift_region, wave_region, flux_region, error_region = Hirogen_Functions.region_cutter(
+                    shift, 
+                    wavelengths,
+                    flux*u.Unit('erg cm-2 s-1 AA-1'),
+                    line_location - 40,
+                    line_location + 40,
+                    mode='Wavelength'
+                )
+            continuum = Hirogen_Functions.continua_maker(
+                    wave_region,
+                    flux_region,
+                    # shift=Shift_Region,
+                    item,
+                    line_location,
+                    object_name
+                )
+            peak_start = find_nearest(wavelengths, continuum[2][0])
+            flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
+
+    flux -= flux_without_peaks
+    return flux
+
+def peak_adder(flux, wavelengths, peaks, line_names):
+    object_name = ''
+    flux = np.resize(flux, np.shape(peaks))
+    wavelengths = np.resize(wavelengths, np.shape(peaks))
+    continua = []
+    lines = Hirogen_Functions.lines_for_analysis()
+    for ii, item in enumerate(lines):
+        if item in line_names:
+            line_location = lines[item][0]
+            shift = (((np.array(wavelengths) * c) / line_location) - c)
+            shift_region, wave_region, flux_region, error_region = Hirogen_Functions.region_cutter(
+                    shift, 
+                    wavelengths,
+                    flux*u.Unit('erg cm-2 s-1 AA-1'),
+                    line_location - 40,
+                    line_location + 40,
+                    mode='Wavelength'
+                )
+            continuum = Hirogen_Functions.continua_maker(
+                    wave_region,
+                    flux_region,
+                    # shift=Shift_Region,
+                    item,
+                    line_location,
+                    object_name
+                )
+            continua.append(continuum[0])
+    
+    j = 0
+    print(len(peaks))
+    while ii <= len(peaks):
+        if peaks[ii] == 0:
+            peaks[ii] += flux[ii]
+            ii += 1
+        else:
+            peaks[ii:ii+len(continua[j])] += continua[j]
+            ii += len(continua[j])
+            j += 1
+        if j == 4:
+            break
+
+    return peaks
 
 def flux_scaler(flux, wavelengths, line_names, scale_value):
     object_name = ''
@@ -89,3 +164,16 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
+
+def create_bins(sorted_pEQWs, bin_size):
+    
+    start = sorted_pEQWs[0]
+    lower_lim = np.floor(start*2)/2
+
+    end = sorted_pEQWs[-1]
+    upper_lim = np.ceil(end*2)/2
+
+    number_of_bins = int((np.abs(lower_lim) + np.abs(upper_lim))/bin_size)+1
+    
+    bins = np.linspace(lower_lim, upper_lim, number_of_bins, endpoint = True)
+    return bins

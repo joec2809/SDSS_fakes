@@ -1,19 +1,32 @@
-import numpy as np
-from astropy.io import fits
-import mods_functions
-import Hirogen_Functions
-import sys
-import scipy.constants as constants
-from astropy import units as u
-import decimal
+
 import matplotlib.pyplot as plt
+
+import Hirogen_Functions
+import mods_functions
+
+import sys
+import os
+import math
+
+import numpy as np
+import scipy.constants as constants
+import mysql.connector
+import decimal
+
+from astropy.io import fits
+from astropy import units as u
+from mysql.connector import errorcode
+from astropy.convolution import convolve, Box1DKernel
+
+# This code takes the 7 confirmed ECLE objects, produces 9 scaled copies of each and saves them as fits files
+# It also adds the corresponding info to an SQL table that contains other galaxy spectra
 
 np.set_printoptions(threshold=sys.maxsize)
 c = constants.value('speed of light in vacuum') / 1000
 
 smoothing_boxcar = 5
 
-scale_factor = 0.5
+scale_factors = np.around(np.arange(0.1, 1.1, 0.1), 1)
 
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
@@ -66,80 +79,378 @@ cursor = Data.cursor()
 
 
 # Can be set to only run the analysis for specific IDs given in the following format
-IDs = (961619990203623424.0,961619990203623424.1) 
+IDs = 1021306429161629696
 
 # Manually_Inspected_Flag = -10 are spectra with external issues that prevent their use
 
 # QUERY
-
-
 cursor.execute(
-    f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
-    f"survey, run2d, Standard_Inclusion,Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override,"
-    f"z_corrected_flag, extinction_corrected_flag "
-    f"FROM `{Database}`.`{Spectra_TableID}`"
+    f"SELECT DR16_Spectroscopic_ID, Right_Ascension, Declination, RA_HMS, DEC_DMS, SDSS_ShortName, DR16_ParentID, DR16_Photometric_ID,"
+    f"SDSS_DR16_Explore_Link, SDSS_DR16_Navigate_Link, survey, run2d, field, spec_Plate, spec_MJD, spec_FiberID, SDSS_Type, spec_class_SDSS,"
+    f"spec_subclass_SDSS, spec_Human_Comments, z_SDSS_spec, z_err_SDSS_spec, z_warning_SDSS_spec, Distance_MPC, Max_Distance_MPC, Min_Distance_MPC,"
+    f"Distance_Modulus, Distance_Modulus_Err, median_SNR_SDSS_spec, u_extinction, g_extinction, r_extinction, i_extinction, z_extinction, generalised_extinction,"
+    f"u_petro_mag, u_petro_mag_err, u_petro_AB_mag, u_petro_AB_mag_err, u_petro_rad, u_petro_rad_err, g_petro_mag, g_petro_mag_err, g_petro_AB_mag, g_petro_AB_mag_err,"
+    f"g_petro_rad, g_petro_rad_err, r_petro_mag, r_petro_mag_err, r_petro_AB_mag, r_petro_AB_mag_err, r_petro_rad, r_petro_rad_err, i_petro_mag, i_petro_mag_err,"
+    f"i_petro_AB_mag, i_petro_AB_mag_err, i_petro_rad, i_petro_rad_err, z_petro_mag, z_petro_mag_err, z_petro_AB_mag, z_petro_AB_mag_err, z_petro_rad, z_petro_rad_err,"
+    f"Petro_Total_Host_Mass_Estimate, Petro_Total_Host_Mass_Estimate_err, Model_Total_Host_Mass_Estimate, Model_Total_Host_Mass_Estimate_err, u_model_mag, u_model_mag_err,"
+    f"u_model_AB_mag, u_model_AB_mag_err, g_model_mag, g_model_mag_err, g_model_AB_mag, g_model_AB_mag_err, r_model_mag, r_model_mag_err, r_model_AB_mag, r_model_AB_mag_err,"
+    f"i_model_mag, i_model_mag_err, i_model_AB_mag, i_model_AB_mag_err, z_model_mag, z_model_mag_err, z_model_AB_mag, z_model_AB_mag_err, u_minus_r_petro, u_minus_r_petro_observation_err,"
+    f"g_minus_r_petro, g_minus_r_petro_observation_err, g_minus_i_petro, g_minus_i_petro_observation_err, u_minus_r_model, u_minus_r_model_observation_err, g_minus_r_model,"
+    f"g_minus_r_model_observation_err, g_minus_i_model, g_minus_i_model_observation_err, flags, clean, ABS_Petro_i_Expected_Mag_Range, Manually_Inspected_Flag, Follow_Up_ID,"
+    f"Standard_Inclusion, Path_Override_Flag, Path_Override, Smoothing_Override, z_corrected_flag, extinction_corrected_flag "
+    f"FROM `{Database}`.`{Objects_TableID}`"
     #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
     #f"WHERE lin_con_pEQW_Halpha is NULL"
     #f"WHERE z_SDSS_spec >= 0.2"
     #f"WHERE Follow_Up_ID = 0"
-    #f"WHERE Follow_Up_ID in (1,2,3)"
-    #f"WHERE Nickname = 'Leafeon' AND Follow_Up_ID in (2,3)"
+    # f"WHERE Follow_Up_ID in (1,2,3)"
     #f"WHERE Standard_Inclusion = 1"
-    #f"WHERE DR16_Spectroscopic_ID IN {IDs} and Standard_Inclusion = 1"
-    #f"WHERE DR16_Spectroscopic_ID = {IDs}"
+    f"WHERE DR16_Spectroscopic_ID = {IDs}"
 )
 
 Candidate_Data = cursor.fetchall()
 # Candidate_Data = cursor.fetchmany(200)
 
-#print(Candidate_Data)
-
 if len(Candidate_Data) >= 1:
 
-    Object_Name_List = [item[0] for item in Candidate_Data]
-    Plate_List = [item[1] for item in Candidate_Data]
-    MJD_List = [item[2] for item in Candidate_Data]
-    FiberID_List = [item[3] for item in Candidate_Data]
-    Redshift_List = [item[4] for item in Candidate_Data]
-    Extinction_List = [item[5] for item in Candidate_Data]
-    Survey_List = [item[6] for item in Candidate_Data]
-    run2d_List = [item[7] for item in Candidate_Data]
-    Standard_Inclusion_List = [item[8] for item in Candidate_Data]
-    Path_Override_Flag_List = [item[9] for item in Candidate_Data]
-    Path_Override_List = [item[10] for item in Candidate_Data]
-    Follow_Up_ID_List = [item[11] for item in Candidate_Data]
-    Smoothing_Override_List = [item[12] for item in Candidate_Data]
-    z_Correction_Override_List = [item[13] for item in Candidate_Data]
-    Extinction_Correction_Override_List = [item[14] for item in Candidate_Data]
+    DR16_SpectroscopicID = [item[0] for item in Candidate_Data]
+    RA = [item[1] for item in Candidate_Data]
+    DEC = [item[2] for item in Candidate_Data]
+    RA_HMS = [item[3] for item in Candidate_Data]
+    DEC_DMS = [item[4] for item in Candidate_Data]
+    SDSS_Shortnames = [item[5] for item in Candidate_Data]
+    DR16_ParentID = [item[6] for item in Candidate_Data]
+    DR16_PhotometricID = [item[7] for item in Candidate_Data]
+    SDSS_Explore_Links = [item[8] for item in Candidate_Data]
+    SDSS_Navigate_Links = [item[9] for item in Candidate_Data]
+    Survey = [item[10] for item in Candidate_Data]
+    Run2D = [item[11] for item in Candidate_Data]
+    Field = [item[12] for item in Candidate_Data]
+    Plate = [item[13] for item in Candidate_Data]
+    MJD = [item[14] for item in Candidate_Data]
+    FiberID = [item[15] for item in Candidate_Data]
+    SDSS_Type = [item[16] for item in Candidate_Data]
+    Spec_Classification = [item[17] for item in Candidate_Data]
+    Spec_Sub_Classification = [item[18] for item in Candidate_Data]
+    Spec_Human_Comments = [item[19] for item in Candidate_Data]
+    Spec_z = [item[20] for item in Candidate_Data]
+    Spec_z_err = [item[21] for item in Candidate_Data]
+    Spec_z_warning = [item[22] for item in Candidate_Data]
+    Distance = [item[23] for item in Candidate_Data]
+    MaxDistance = [item[24] for item in Candidate_Data]
+    MinDistance = [item[25] for item in Candidate_Data]
+    Distance_Modulus = [item[26] for item in Candidate_Data]
+    Distance_Modulus_Err = [item[27] for item in Candidate_Data]
+    Median_SNR = [item[28] for item in Candidate_Data]
+    Extinction_u = [item[29] for item in Candidate_Data]
+    Extinction_g = [item[30] for item in Candidate_Data]
+    Extinction_r = [item[31] for item in Candidate_Data]
+    Extinction_i = [item[32] for item in Candidate_Data]
+    Extinction_z = [item[33] for item in Candidate_Data]
+    Mean_E_BminusV = [item[34] for item in Candidate_Data]
+    Petrosian_u = [item[35] for item in Candidate_Data]
+    Petrosian_u_err = [item[36] for item in Candidate_Data]
+    Petrosian_u_AB = [item[37] for item in Candidate_Data]
+    Petrosian_u_AB_err = [item[38] for item in Candidate_Data]
+    Petrosian_u_rad = [item[39] for item in Candidate_Data]
+    Petrosian_u_rad_err = [item[40] for item in Candidate_Data]
+    Petrosian_g = [item[41] for item in Candidate_Data]
+    Petrosian_g_err = [item[42] for item in Candidate_Data]
+    Petrosian_g_AB = [item[43] for item in Candidate_Data]
+    Petrosian_g_AB_err = [item[44] for item in Candidate_Data]
+    Petrosian_g_rad = [item[45] for item in Candidate_Data]
+    Petrosian_g_rad_err = [item[46] for item in Candidate_Data]
+    Petrosian_r = [item[47] for item in Candidate_Data]
+    Petrosian_r_err = [item[48] for item in Candidate_Data]
+    Petrosian_r_AB = [item[49] for item in Candidate_Data]
+    Petrosian_r_AB_err = [item[50] for item in Candidate_Data]
+    Petrosian_r_rad = [item[51] for item in Candidate_Data]
+    Petrosian_r_rad_err = [item[52] for item in Candidate_Data]
+    Petrosian_i = [item[53] for item in Candidate_Data]
+    Petrosian_i_err = [item[54] for item in Candidate_Data]
+    Petrosian_i_AB = [item[55] for item in Candidate_Data]
+    Petrosian_i_AB_err = [item[56] for item in Candidate_Data]
+    Petrosian_i_rad = [item[57] for item in Candidate_Data]
+    Petrosian_i_rad_err = [item[58] for item in Candidate_Data]
+    Petrosian_z = [item[59] for item in Candidate_Data]
+    Petrosian_z_err = [item[60] for item in Candidate_Data]
+    Petrosian_z_AB = [item[61] for item in Candidate_Data]
+    Petrosian_z_AB_err = [item[62] for item in Candidate_Data]
+    Petrosian_z_rad = [item[63] for item in Candidate_Data]
+    Petrosian_z_rad_err = [item[64] for item in Candidate_Data]
+    TotalHostMassEstimate_Petro = [item[65] for item in Candidate_Data]
+    TotalHostMassEstimate_Err_Petro = [item[66] for item in Candidate_Data]
+    TotalHostMassEstimate_Model = [item[67] for item in Candidate_Data]
+    TotalHostMassEstimate_Err_Model = [item[68] for item in Candidate_Data]
+    Model_u = [item[69] for item in Candidate_Data]
+    Model_u_err = [item[70] for item in Candidate_Data]
+    Model_u_AB = [item[71] for item in Candidate_Data]
+    Model_u_AB_err = [item[72] for item in Candidate_Data]
+    Model_g = [item[73] for item in Candidate_Data]
+    Model_g_err = [item[74] for item in Candidate_Data]
+    Model_g_AB = [item[75] for item in Candidate_Data]
+    Model_g_AB_err = [item[76] for item in Candidate_Data]
+    Model_r = [item[77] for item in Candidate_Data]
+    Model_r_err = [item[78] for item in Candidate_Data]
+    Model_r_AB = [item[79] for item in Candidate_Data]
+    Model_r_AB_err = [item[80] for item in Candidate_Data]
+    Model_i = [item[81] for item in Candidate_Data]
+    Model_i_err = [item[82] for item in Candidate_Data]
+    Model_i_AB = [item[83] for item in Candidate_Data]
+    Model_i_AB_err = [item[84] for item in Candidate_Data]
+    Model_z = [item[85] for item in Candidate_Data]
+    Model_z_err = [item[86] for item in Candidate_Data]
+    Model_z_AB = [item[87] for item in Candidate_Data]
+    Model_z_AB_err = [item[88] for item in Candidate_Data]
+    Petrosian_u_minus_r = [item[89] for item in Candidate_Data]
+    Petrosian_u_minus_r_observation_err = [item[90] for item in Candidate_Data]
+    Petrosian_g_minus_r = [item[91] for item in Candidate_Data]
+    Petrosian_g_minus_r_observation_err = [item[92] for item in Candidate_Data]
+    Petrosian_g_minus_i = [item[93] for item in Candidate_Data]
+    Petrosian_g_minus_i_observation_err = [item[94] for item in Candidate_Data]
+    Model_u_minus_r = [item[95] for item in Candidate_Data]
+    Model_u_minus_r_observation_err = [item[96] for item in Candidate_Data]
+    Model_g_minus_r = [item[97] for item in Candidate_Data]
+    Model_g_minus_r_observation_err = [item[98] for item in Candidate_Data]
+    Model_g_minus_i = [item[99] for item in Candidate_Data]
+    Model_g_minus_i_observation_err = [item[100] for item in Candidate_Data]
+    Spec_Flags = [item[101] for item in Candidate_Data]
+    Clean_Flag = [item[102] for item in Candidate_Data]
+    Petro_AB_i_Check = [item[103] for item in Candidate_Data]
+    Manual_Flag = [item[104] for item in Candidate_Data]
+    Follow_UpID = [item[105] for item in Candidate_Data]
+    Standard_Inclusion = [item[106] for item in Candidate_Data]
+    Path_Override_Flag = [item[107] for item in Candidate_Data]
+    Path_Override = [item[108] for item in Candidate_Data]
+    Smoothing_Override = [item[109] for item in Candidate_Data]
+    z_Corrected_Flag = [item[110] for item in Candidate_Data]
+    Extinction_Corrected_Flag = [item[111] for item in Candidate_Data]
 
+cursor.execute(f"SELECT * FROM {Database}.{Spectra_TableID}")
+rows = cursor.fetchall()
+
+print(f'Number of rows prior to row entry is: {len(rows)}')
+
+# Generate filenames of confirmed ECLEs
+filenames = Hirogen_Functions.sdss_spectra_file_path_generator(
+    Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D, 
+    Path_Override_Flag, Path_Override
+)
+
+# Create scaled ECLEs
+for i, object in enumerate(Candidate_Data):
+
+    with fits.open(filenames[i], comments='#') as hdul:
+            header = hdul[0].header
+            spectrum_data = hdul[1].data
+
+    #Assumes the spectrum data is in the format:
+    #Wavelength, Flux, FluxError
+
+    wave = np.array(spectrum_data['loglam'])
+    flux = np.array(spectrum_data['flux'])
+    flux_err = np.array(spectrum_data['ivar'])
+    flags = np.array(spectrum_data['and_mask'])
+
+    lamb_observed = 10**wave * u.AA
+
+    spec_res = (lamb_observed[1] - lamb_observed[0])  # Assumes that the file has a fixed wavelength resolution
+
+    ###########
+    # Redshift Correction
+    ###########
+
+    lamb_rest_ecle = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=Spec_z[i]) * u.AA
+
+    lines_to_scale = Hirogen_Functions.lines_for_scaling()
+
+    peaks_only = mods_functions.peak_selector(flux, lamb_rest_ecle, lines_to_scale)
+ 
+galaxy_IDs = 476264762116696064
+
+cursor.execute(
+    f"SELECT DR16_Spectroscopic_ID, Right_Ascension, Declination, RA_HMS, DEC_DMS, SDSS_ShortName, DR16_ParentID, DR16_Photometric_ID,"
+    f"SDSS_DR16_Explore_Link, SDSS_DR16_Navigate_Link, survey, run2d, field, spec_Plate, spec_MJD, spec_FiberID, SDSS_Type, spec_class_SDSS,"
+    f"spec_subclass_SDSS, spec_Human_Comments, z_SDSS_spec, z_err_SDSS_spec, z_warning_SDSS_spec, Distance_MPC, Max_Distance_MPC, Min_Distance_MPC,"
+    f"Distance_Modulus, Distance_Modulus_Err, median_SNR_SDSS_spec, u_extinction, g_extinction, r_extinction, i_extinction, z_extinction, generalised_extinction,"
+    f"u_petro_mag, u_petro_mag_err, u_petro_AB_mag, u_petro_AB_mag_err, u_petro_rad, u_petro_rad_err, g_petro_mag, g_petro_mag_err, g_petro_AB_mag, g_petro_AB_mag_err,"
+    f"g_petro_rad, g_petro_rad_err, r_petro_mag, r_petro_mag_err, r_petro_AB_mag, r_petro_AB_mag_err, r_petro_rad, r_petro_rad_err, i_petro_mag, i_petro_mag_err,"
+    f"i_petro_AB_mag, i_petro_AB_mag_err, i_petro_rad, i_petro_rad_err, z_petro_mag, z_petro_mag_err, z_petro_AB_mag, z_petro_AB_mag_err, z_petro_rad, z_petro_rad_err,"
+    f"Petro_Total_Host_Mass_Estimate, Petro_Total_Host_Mass_Estimate_err, Model_Total_Host_Mass_Estimate, Model_Total_Host_Mass_Estimate_err, u_model_mag, u_model_mag_err,"
+    f"u_model_AB_mag, u_model_AB_mag_err, g_model_mag, g_model_mag_err, g_model_AB_mag, g_model_AB_mag_err, r_model_mag, r_model_mag_err, r_model_AB_mag, r_model_AB_mag_err,"
+    f"i_model_mag, i_model_mag_err, i_model_AB_mag, i_model_AB_mag_err, z_model_mag, z_model_mag_err, z_model_AB_mag, z_model_AB_mag_err, u_minus_r_petro, u_minus_r_petro_observation_err,"
+    f"g_minus_r_petro, g_minus_r_petro_observation_err, g_minus_i_petro, g_minus_i_petro_observation_err, u_minus_r_model, u_minus_r_model_observation_err, g_minus_r_model,"
+    f"g_minus_r_model_observation_err, g_minus_i_model, g_minus_i_model_observation_err, flags, clean, ABS_Petro_i_Expected_Mag_Range, Manually_Inspected_Flag, Follow_Up_ID,"
+    f"Standard_Inclusion, Path_Override_Flag, Path_Override, Smoothing_Override, z_corrected_flag, extinction_corrected_flag "
+    f"FROM `{Database}`.`{Spectra_TableID}`"
+    #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
+    #f"WHERE lin_con_pEQW_Halpha is NULL"
+    #f"WHERE z_SDSS_spec >= 0.2"
+    #f"WHERE Follow_Up_ID = 0"
+    # f"WHERE Follow_Up_ID in (1,2,3)"
+    #f"WHERE Standard_Inclusion = 1"
+    f"WHERE DR16_Spectroscopic_ID = {galaxy_IDs}"
+)
+
+Candidate_Data = cursor.fetchall()
+
+if len(Candidate_Data) >= 1:
+    DR16_SpectroscopicID = [item[0] for item in Candidate_Data]
+    RA = [item[1] for item in Candidate_Data]
+    DEC = [item[2] for item in Candidate_Data]
+    RA_HMS = [item[3] for item in Candidate_Data]
+    DEC_DMS = [item[4] for item in Candidate_Data]
+    SDSS_Shortnames = [item[5] for item in Candidate_Data]
+    DR16_ParentID = [item[6] for item in Candidate_Data]
+    DR16_PhotometricID = [item[7] for item in Candidate_Data]
+    SDSS_Explore_Links = [item[8] for item in Candidate_Data]
+    SDSS_Navigate_Links = [item[9] for item in Candidate_Data]
+    Survey = [item[10] for item in Candidate_Data]
+    Run2D = [item[11] for item in Candidate_Data]
+    Field = [item[12] for item in Candidate_Data]
+    Plate = [item[13] for item in Candidate_Data]
+    MJD = [item[14] for item in Candidate_Data]
+    FiberID = [item[15] for item in Candidate_Data]
+    SDSS_Type = [item[16] for item in Candidate_Data]
+    Spec_Classification = [item[17] for item in Candidate_Data]
+    Spec_Sub_Classification = [item[18] for item in Candidate_Data]
+    Spec_Human_Comments = [item[19] for item in Candidate_Data]
+    Spec_z = [item[20] for item in Candidate_Data]
+    Spec_z_err = [item[21] for item in Candidate_Data]
+    Spec_z_warning = [item[22] for item in Candidate_Data]
+    Distance = [item[23] for item in Candidate_Data]
+    MaxDistance = [item[24] for item in Candidate_Data]
+    MinDistance = [item[25] for item in Candidate_Data]
+    Distance_Modulus = [item[26] for item in Candidate_Data]
+    Distance_Modulus_Err = [item[27] for item in Candidate_Data]
+    Median_SNR = [item[28] for item in Candidate_Data]
+    Extinction_u = [item[29] for item in Candidate_Data]
+    Extinction_g = [item[30] for item in Candidate_Data]
+    Extinction_r = [item[31] for item in Candidate_Data]
+    Extinction_i = [item[32] for item in Candidate_Data]
+    Extinction_z = [item[33] for item in Candidate_Data]
+    Mean_E_BminusV = [item[34] for item in Candidate_Data]
+    Petrosian_u = [item[35] for item in Candidate_Data]
+    Petrosian_u_err = [item[36] for item in Candidate_Data]
+    Petrosian_u_AB = [item[37] for item in Candidate_Data]
+    Petrosian_u_AB_err = [item[38] for item in Candidate_Data]
+    Petrosian_u_rad = [item[39] for item in Candidate_Data]
+    Petrosian_u_rad_err = [item[40] for item in Candidate_Data]
+    Petrosian_g = [item[41] for item in Candidate_Data]
+    Petrosian_g_err = [item[42] for item in Candidate_Data]
+    Petrosian_g_AB = [item[43] for item in Candidate_Data]
+    Petrosian_g_AB_err = [item[44] for item in Candidate_Data]
+    Petrosian_g_rad = [item[45] for item in Candidate_Data]
+    Petrosian_g_rad_err = [item[46] for item in Candidate_Data]
+    Petrosian_r = [item[47] for item in Candidate_Data]
+    Petrosian_r_err = [item[48] for item in Candidate_Data]
+    Petrosian_r_AB = [item[49] for item in Candidate_Data]
+    Petrosian_r_AB_err = [item[50] for item in Candidate_Data]
+    Petrosian_r_rad = [item[51] for item in Candidate_Data]
+    Petrosian_r_rad_err = [item[52] for item in Candidate_Data]
+    Petrosian_i = [item[53] for item in Candidate_Data]
+    Petrosian_i_err = [item[54] for item in Candidate_Data]
+    Petrosian_i_AB = [item[55] for item in Candidate_Data]
+    Petrosian_i_AB_err = [item[56] for item in Candidate_Data]
+    Petrosian_i_rad = [item[57] for item in Candidate_Data]
+    Petrosian_i_rad_err = [item[58] for item in Candidate_Data]
+    Petrosian_z = [item[59] for item in Candidate_Data]
+    Petrosian_z_err = [item[60] for item in Candidate_Data]
+    Petrosian_z_AB = [item[61] for item in Candidate_Data]
+    Petrosian_z_AB_err = [item[62] for item in Candidate_Data]
+    Petrosian_z_rad = [item[63] for item in Candidate_Data]
+    Petrosian_z_rad_err = [item[64] for item in Candidate_Data]
+    TotalHostMassEstimate_Petro = [item[65] for item in Candidate_Data]
+    TotalHostMassEstimate_Err_Petro = [item[66] for item in Candidate_Data]
+    TotalHostMassEstimate_Model = [item[67] for item in Candidate_Data]
+    TotalHostMassEstimate_Err_Model = [item[68] for item in Candidate_Data]
+    Model_u = [item[69] for item in Candidate_Data]
+    Model_u_err = [item[70] for item in Candidate_Data]
+    Model_u_AB = [item[71] for item in Candidate_Data]
+    Model_u_AB_err = [item[72] for item in Candidate_Data]
+    Model_g = [item[73] for item in Candidate_Data]
+    Model_g_err = [item[74] for item in Candidate_Data]
+    Model_g_AB = [item[75] for item in Candidate_Data]
+    Model_g_AB_err = [item[76] for item in Candidate_Data]
+    Model_r = [item[77] for item in Candidate_Data]
+    Model_r_err = [item[78] for item in Candidate_Data]
+    Model_r_AB = [item[79] for item in Candidate_Data]
+    Model_r_AB_err = [item[80] for item in Candidate_Data]
+    Model_i = [item[81] for item in Candidate_Data]
+    Model_i_err = [item[82] for item in Candidate_Data]
+    Model_i_AB = [item[83] for item in Candidate_Data]
+    Model_i_AB_err = [item[84] for item in Candidate_Data]
+    Model_z = [item[85] for item in Candidate_Data]
+    Model_z_err = [item[86] for item in Candidate_Data]
+    Model_z_AB = [item[87] for item in Candidate_Data]
+    Model_z_AB_err = [item[88] for item in Candidate_Data]
+    Petrosian_u_minus_r = [item[89] for item in Candidate_Data]
+    Petrosian_u_minus_r_observation_err = [item[90] for item in Candidate_Data]
+    Petrosian_g_minus_r = [item[91] for item in Candidate_Data]
+    Petrosian_g_minus_r_observation_err = [item[92] for item in Candidate_Data]
+    Petrosian_g_minus_i = [item[93] for item in Candidate_Data]
+    Petrosian_g_minus_i_observation_err = [item[94] for item in Candidate_Data]
+    Model_u_minus_r = [item[95] for item in Candidate_Data]
+    Model_u_minus_r_observation_err = [item[96] for item in Candidate_Data]
+    Model_g_minus_r = [item[97] for item in Candidate_Data]
+    Model_g_minus_r_observation_err = [item[98] for item in Candidate_Data]
+    Model_g_minus_i = [item[99] for item in Candidate_Data]
+    Model_g_minus_i_observation_err = [item[100] for item in Candidate_Data]
+    Spec_Flags = [item[101] for item in Candidate_Data]
+    Clean_Flag = [item[102] for item in Candidate_Data]
+    Petro_AB_i_Check = [item[103] for item in Candidate_Data]
+    Manual_Flag = [item[104] for item in Candidate_Data]
+    Follow_UpID = [item[105] for item in Candidate_Data]
+    Standard_Inclusion = [item[106] for item in Candidate_Data]
+    Path_Override_Flag = [item[107] for item in Candidate_Data]
+    Path_Override = [item[108] for item in Candidate_Data]
+    Smoothing_Override = [item[109] for item in Candidate_Data]
+    z_Corrected_Flag = [item[110] for item in Candidate_Data]
+    Extinction_Corrected_Flag = [item[111] for item in Candidate_Data]
+        
 else:
     print("Candidate_Data Length error: Check and try again.")
 
     sys.exit()
 
-Total_Object_Count = len(Object_Name_List)
+filenames = Hirogen_Functions.sdss_spectra_file_path_generator(
+    Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D, 
+    Path_Override_Flag, Path_Override
+)
 
-filepath = "./dr16/sdss/spectro/redux/26/spectra/0854/spec-0854-52373-0369.fits"
+# Create scaled ECLEs
+for i, object in enumerate(Candidate_Data):
 
-Spectral_Data = Hirogen_Functions.sdss_spectrum_reader(filepath, Redshift_List, Extinction_List, z_correction_flag=z_Correction_Override_List,
-                                                        extinction_correction_flag=Extinction_Correction_Override_List
-                                                    )
+    with fits.open(filenames[i], comments='#') as hdul:
+            header = hdul[0].header
+            spectrum_data = hdul[1].data
 
-wave_1 = Spectral_Data[0]
-flux_1 = Spectral_Data[1]
+    #Assumes the spectrum data is in the format:
+    #Wavelength, Flux, FluxError
+
+    wave = np.array(spectrum_data['loglam'])
+    flux = np.array(spectrum_data['flux'])
+    flux_err = np.array(spectrum_data['ivar'])
+    flags = np.array(spectrum_data['and_mask'])
+
+    lamb_observed = 10**wave * u.AA
+
+    spec_res = (lamb_observed[1] - lamb_observed[0])  # Assumes that the file has a fixed wavelength resolution
+
+    ###########
+    # Redshift Correction
+    ###########
+
+    lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=Spec_z[i]) * u.AA
+
+    
+
+fake_peaks = mods_functions.peak_adder(flux, lamb_rest, peaks_only, lines_to_scale)
+
+print(lamb_rest[0], lamb_rest[-1], lamb_rest_ecle[0], lamb_rest_ecle[-1])
 
 
-filepath = "./dr16/sdss/spectro/redux/26/spectra/0854/spec-0854-52373-0369-0.5.fits"
 
-Spectral_Data = Hirogen_Functions.sdss_spectrum_reader(filepath, Redshift_List, Extinction_List, z_correction_flag=z_Correction_Override_List,
-                                                        extinction_correction_flag=Extinction_Correction_Override_List
-                                                    )
-
-wave_2 = Spectral_Data[0]
-flux_2 = Spectral_Data[1]
-
-            
 fig, ax = plt.subplots()
-ax.plot(wave_2, flux_2, 'r')
-ax.plot(wave_1, flux_1, 'k')
+ax.plot(lamb_rest_ecle, fake_peaks)
 plt.show()

@@ -187,16 +187,16 @@ def lines_for_scoring():
 
     return spectral_lines_for_scoring_air
 
-def lines_for_scaling():
-    """The lines the are scaled to create fake spectra for rate calculation"""
-    spectral_lines_for_scaling_air = [
+def coronal_lines():
+    """Fe lines"""
+    spectral_coronal_lines_air = [
         '[FeVII]6088',
         '[FeX]6376',
         '[FeXI]7894',
         '[FeXIV]5304' 
     ]
 
-    return spectral_lines_for_scaling_air
+    return spectral_coronal_lines_air
 
 def primary_lines():
     """The lines of primary interest and those which are included in the main snapshot plot"""
@@ -652,49 +652,6 @@ def continua_maker(spec_region, flux, line_name, line_loc, object_name):
     return continuum, scaled_flux, continuum_regions
 
 
-def flux_scaler(flux, wavelengths, line_names, scale_value):
-    object_name = ''
-    flux_without_peaks = np.zeros(len(flux))
-    scale_array = np.ones(len(flux))
-    lines = lines_for_analysis()
-    for ii, item in enumerate(lines):
-        if item in line_names:
-            line_location = lines[item][0]
-            shift = (((np.array(wavelengths) * c) / line_location) - c)
-            shift_region, wave_region, flux_region, error_region = region_cutter(
-                    shift, 
-                    wavelengths,
-                    flux,
-                    line_location - 40,
-                    line_location + 40,
-                    mode='Wavelength'
-                )
-            continuum = continua_maker(
-                    wave_region,
-                    flux_region,
-                    # shift=Shift_Region,
-                    item,
-                    line_location,
-                    object_name
-                )
-            peak_start = find_nearest(wavelengths, continuum[2][0])
-            flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
-    
-    flux = flux.value - flux_without_peaks
-
-    for i, name in enumerate(line_names):
-        line = lines[name]
-        line_location = line[0]
-        for i, x in enumerate(scale_array):
-            if wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] >= 0: 
-                scale_array[i] = scale_value
-            elif wavelengths[i].value >= line_location - 12 and wavelengths[i].value <= line_location + 12 and flux[i] < 0: 
-                scale_array[i] = 1/scale_value
-    scaled_flux = flux*scale_array
-    scaled_flux += flux_without_peaks
-    flux += flux_without_peaks
-    return scaled_flux
-
 def eqw_finder(flux, continuum, xaxis, object_name, start="A", stop="B", xstep="C"):
     """Equivalent Width Finder - Configured for specifically for Hirogen - An older version that is not currently in use
 
@@ -1097,62 +1054,6 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
 
     return file_paths
 
-def sdss_scaled_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_id_list, survey_list, run2d_list, scale_factor_list,
-                                            override_path_flag_list=[], override_path_list=[]):
-
-    file_paths = []
-
-    for ii, item in enumerate(plate_list):
-
-        if override_path_flag_list[ii] == 0:
-
-            if scale_factor_list[ii] is None:
-
-                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
-
-                    file_paths.append(
-                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
-                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
-                    )
-
-                elif survey_list[ii] in ['eboss', 'boss']:
-            
-                    file_paths.append(
-                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
-                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
-                    )
-
-                else:
-                    print("Not sure how to handle this survey - exiting for now")
-                    print(f"{ii}\t{survey_list[ii]}")
-                    sys.exit()
-
-            else:
-                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
-
-                    file_paths.append(
-                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
-                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-{scale_factor_list[ii]}.fits"
-                    )
-
-                elif survey_list[ii] in ['eboss', 'boss']:
-                
-                    file_paths.append(
-                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
-                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-{scale_factor_list[ii]}.fits"
-                    )
-
-                else:
-                    print("Not sure how to handle this survey - exiting for now")
-                    print(f"{ii}\t{survey_list[ii]}")
-                    sys.exit()
-        
-        else:
-            file_paths.append(
-                f"{override_path_list[ii]}"
-            )
-
-    return file_paths
 
 def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxcar=5, median_filter=False,
                           med_filter_kernel=3, flag_check=False, z_correction_flag=0, extinction_correction_flag=0):

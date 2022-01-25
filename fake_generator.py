@@ -16,6 +16,7 @@ from astropy.io import fits
 from astropy import units as u
 from mysql.connector import errorcode
 from astropy.convolution import convolve, Box1DKernel
+from random import uniform
 
 # This code takes the 7 confirmed ECLE objects, produces 9 scaled copies of each and saves them as fits files
 # It also adds the corresponding info to an SQL table that contains other galaxy spectra
@@ -31,7 +32,7 @@ User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
 Objects_TableID = "SDSS_Confirmed_Objects"
-Spectra_TableID = 'SDSS_Galaxy_Spectra'
+Spectra_TableID = 'SDSS_Fake_Spectra'
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
 
@@ -200,7 +201,11 @@ for i, spectrum in enumerate(galaxy_Object_Name_List):
 
     galaxy_lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=galaxy_Redshift_List[i]) * u.AA
 
+    # Remove peaks from spectra and replace with continua
+
     galaxy_flux_with_continua = mods_functions.peak_remover(galaxy_flux, galaxy_lamb_rest, coronal_lines)
+
+    # Choose random ECLE peaks
 
     peak_file_idx = np.random.randint(0,7)
 
@@ -222,7 +227,9 @@ for i, spectrum in enumerate(galaxy_Object_Name_List):
 
     spec_res = (lamb_observed[1] - lamb_observed[0])  # Assumes that the file has a fixed wavelength resolution
 
-    scale_factor = np.random.random()
+    # Apply random scaling factor to peaks and error
+
+    scale_factor = uniform(0,1)
 
     scaled_peak_flux = peak_flux * scale_factor
 
@@ -234,15 +241,21 @@ for i, spectrum in enumerate(galaxy_Object_Name_List):
 
     peak_lamb_rest = Hirogen_Functions.rest_wavelength_converter(observer_frame_wave=lamb_observed.value, z=ecle_Redshift_List[peak_file_idx]) * u.AA
 
+    # Resize peaks spectra and galaxy spectra to same size
+
     peak_wavelengths, peak_flux, peak_flux_err, peak_flags, galaxy_wavelengths, galaxy_flux, galaxy_flux_err, galaxy_flags = mods_functions.spectra_resizer(
                                                                                                                             peak_lamb_rest, scaled_peak_flux, 
                                                                                                                             scaled_peak_flux_err, peak_flags,
                                                                                                                             galaxy_lamb_rest, galaxy_flux_with_continua,
                                                                                                                             galaxy_flux_err, galaxy_flags)
 
+    # Create fake spectra and error propagation
+
     fake_flux = peak_flux + galaxy_flux
 
     new_flux_err = np.sqrt(galaxy_flux_err**2 + peak_flux_err**2)
+
+    # Change wavelength back to form stored in fits file
 
     save_wave = np.log10((1+galaxy_Redshift_List[i])*galaxy_wavelengths.value)
 

@@ -117,6 +117,7 @@ else:
 
     sys.exit()
 
+
 FilePaths = Hirogen_Functions.sdss_spectra_file_path_generator(
     Main_Spectra_Path, Plate_List, MJD_List, FiberID_List, Survey_List, run2d_List,
     override_path_flag_list=Path_Override_Flag_List, override_path_list=Path_Override_List
@@ -148,9 +149,15 @@ for i, item in enumerate(Candidate_Data):
 
     coronal_lines = Hirogen_Functions.coronal_lines()
 
+    # Set most of spectra flux to zero, leaving the peaks only
+
     peaks_only = mods_functions.peak_selector(flux, lamb_rest, coronal_lines)
 
+    # Error propagation of subtracting flux
+
     new_flux_err = np.sqrt(2)*flux_err
+
+    # Save as new fits file
 
     mods_functions.fits_file_gen(wave, peaks_only, new_flux_err, flags, Main_Spectra_Path,
         Plate_List[i], MJD_List[i], FiberID_List[i], Survey_List[i], run2d_List[i],

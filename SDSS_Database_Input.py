@@ -18,7 +18,7 @@ np.seterr(invalid='raise')
 
 User = 'Joe'
 Input_Data_File = "galaxy_spectra.csv"
-TableID = "SDSS_Galaxy_Spectra"
+TableID = "SDSS_Fake_Spectra"
 
 # Input_Data_File = "MyResult_2021615_RA_Above_20_Dec_Above_10_25000.csv"
 # Input_Data_File = "MyResult_2021615_RA_Above_20_Dec_Below_10_25000.csv"

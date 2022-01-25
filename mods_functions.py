@@ -72,7 +72,7 @@ def peak_remover(flux, wavelengths, line_names):
             flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
 
     return flux_without_peaks
-    
+
 
 def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, FiberID, Survey, Run2D,
             Path_Override_Flag, Path_Override, Mode):
@@ -114,7 +114,7 @@ def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, Fi
 
             elif Survey in ['eboss', 'boss']:
             
-                filepath = f"{Main_Spectra_Path}/dr16/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}_fake.fits"
+                filepath = f"{Main_Spectra_Path}/dr16/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}-fake.fits"
 
             else:
                 print("Not sure how to handle this survey - exiting for now")
@@ -123,6 +123,10 @@ def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, Fi
         
         else:
             filepath = f"{Path_Override}"
+
+    else:
+        print('mode selection not recognised.\nPlease check and try again.')
+        sys.exit()
 
     hdu.writeto(f"{filepath}", overwrite = True)
     
@@ -148,26 +152,50 @@ def create_bins(sorted_pEQWs, bin_size):
     bins = np.linspace(lower_lim, upper_lim, number_of_bins, endpoint = True)
     return bins
 
-def spectra_resizer(ecle_wavelengths, ecle_flux, galaxy_wavelengths, galaxy_flux):
+def spectra_resizer(ecle_wavelengths, ecle_flux, ecle_flux_err, ecle_flags, galaxy_wavelengths, galaxy_flux, galaxy_flux_err, galaxy_flags):
 
     if ecle_wavelengths[0] > galaxy_wavelengths[0]:
         start_idx = find_nearest(galaxy_wavelengths, ecle_wavelengths[0])
-        galaxy_wavelengths = np.delete(galaxy_wavelengths, np.arange(start_idx))
-        galaxy_flux = np.delete(galaxy_flux, np.arange(start_idx))
+        galaxy_wavelengths_1 = np.delete(galaxy_wavelengths, np.arange(start_idx))
+        galaxy_flux_1 = np.delete(galaxy_flux, np.arange(start_idx))
+        galaxy_flux_err_1 = np.delete(galaxy_flux_err, np.arange(start_idx))
+        galaxy_flags_1 = np.delete(galaxy_flags, np.arange(start_idx))
+        ecle_wavelengths_1 = ecle_wavelengths
+        ecle_flux_1 = ecle_flux
+        ecle_flux_err_1 = ecle_flux_err
+        ecle_flags_1 = ecle_flags
 
     elif ecle_wavelengths[0] < galaxy_wavelengths[0]:
         start_idx = find_nearest(ecle_wavelengths, galaxy_wavelengths[0])
-        ecle_wavelengths = np.delete(ecle_wavelengths, np.arange(start_idx))
-        ecle_flux = np.delete(ecle_flux, np.arange(start_idx))
+        ecle_wavelengths_1 = np.delete(ecle_wavelengths, np.arange(start_idx))
+        ecle_flux_1 = np.delete(ecle_flux, np.arange(start_idx))
+        ecle_flux_err_1 = np.delete(ecle_flux, np.arange(start_idx))
+        ecle_flags_1 = np.delete(ecle_flags, np.arange(start_idx))
+        galaxy_wavelengths_1 = galaxy_wavelengths
+        galaxy_flux_1 = galaxy_flux
+        galaxy_flux_err_1 = galaxy_flux_err
+        galaxy_flags_1 = galaxy_flags
 
-    if ecle_wavelengths[-1] < galaxy_wavelengths[-1]:
-        end_idx = find_nearest(galaxy_wavelengths, ecle_wavelengths[-1]) + 1
-        galaxy_wavelengths = np.delete(galaxy_wavelengths, np.arange(end_idx, len(galaxy_wavelengths)))
-        galaxy_flux = np.delete(galaxy_flux, np.arange(end_idx, len(galaxy_flux)))
+    if ecle_wavelengths_1[-1] < galaxy_wavelengths_1[-1]:
+        end_idx = find_nearest(galaxy_wavelengths_1, ecle_wavelengths_1[-1]) + 1
+        galaxy_wavelengths_2 = np.delete(galaxy_wavelengths_1, np.arange(end_idx, len(galaxy_wavelengths_1)))
+        galaxy_flux_2 = np.delete(galaxy_flux_1, np.arange(end_idx, len(galaxy_flux_1)))
+        galaxy_flux_err_2 = np.delete(galaxy_flux_err_1, np.arange(end_idx, len(galaxy_flux_err_1)))
+        galaxy_flags_2 = np.delete(galaxy_flags_1, np.arange(end_idx, len(galaxy_flags_1)))
+        ecle_wavelengths_2 = ecle_wavelengths_1
+        ecle_flux_2 = ecle_flux_1
+        ecle_flux_err_2 = ecle_flux_err_1
+        ecle_flags_2 = ecle_flags_1
 
-    if ecle_wavelengths[-1] > galaxy_wavelengths[-1]:
-        end_idx = find_nearest(ecle_wavelengths, galaxy_wavelengths[-1]) + 1
-        ecle_wavelengths = np.delete(ecle_wavelengths, np.arange(end_idx, len(ecle_wavelengths)))
-        ecle_flux = np.delete(ecle_flux, np.arange(end_idx, len(ecle_flux)))
+    elif ecle_wavelengths_1[-1] > galaxy_wavelengths_1[-1]:
+        end_idx = find_nearest(ecle_wavelengths_1, galaxy_wavelengths_1[-1]) + 1
+        ecle_wavelengths_2 = np.delete(ecle_wavelengths_1, np.arange(end_idx, len(ecle_wavelengths_1)))
+        ecle_flux_2 = np.delete(ecle_flux_1, np.arange(end_idx, len(ecle_flux_1)))
+        ecle_flux_err_2 = np.delete(ecle_flux_err_1, np.arange(end_idx, len(ecle_flux_err_1)))
+        ecle_flags_2 = np.delete(ecle_flags_1, np.arange(end_idx, len(ecle_flags_1)))
+        galaxy_wavelengths_2 = galaxy_wavelengths_1
+        galaxy_flux_2 = galaxy_flux_1
+        galaxy_flux_err_2 = galaxy_flux_err_1
+        galaxy_flags_2 = galaxy_flags_1
 
-    return ecle_wavelengths, ecle_flux, galaxy_wavelengths, galaxy_flux
+    return ecle_wavelengths_2, ecle_flux_2, ecle_flux_err_2, ecle_flags_2, galaxy_wavelengths_2, galaxy_flux_2, galaxy_flux_err_2, galaxy_flags_2

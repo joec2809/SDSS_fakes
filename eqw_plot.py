@@ -75,22 +75,31 @@ for i, score in enumerate(ecle_candidate_score):
     if score >= 7 or (fevii_flag[i]+fex_flag[i]+fexi_flag[i]+fexiv_flag[i])> 0:
         ecle_candidate[i] = 1
 
-# FeVII 
-fevii_scores = np.zeros((len(fevii_pEQW), 2))
-fevii_scores[:,0] = fevii_pEQW
-fevii_scores[:,1] = ecle_candidate
+# FeVII
+fevii_pEQW = np.array(fevii_pEQW)
+fevii_scores = np.array(ecle_candidate)
 
-nans = np.argwhere(fevii_scores[:,0] <= -999)
-new_fevii_scores = np.delete(fevii_scores, nans, axis = 0)
+nans = np.argwhere(fevii_pEQW <= -999)
+new_fevii_pEQW = np.delete(fevii_pEQW, nans)
+new_fevii_scores = np.delete(fevii_scores, nans)
 
-fevii_sort_ind = new_fevii_scores[:,0].argsort()
+fevii_sort_ind = new_fevii_pEQW.argsort()
+fevii_pEQW_sort = fevii_pEQW[fevii_sort_ind]
 fevii_scores_sort = fevii_scores[fevii_sort_ind]
 
-fevii_bins_template = mods_functions.create_bins(fevii_scores_sort[:,0], 1)
-fevii_bins = pd.cut(fevii_scores_sort[:,0], bins = fevii_bins_template, right = True)
-fevii_binned = np.array(np.split(fevii_scores_sort, fevii_bins))
+fevii_bins_template = mods_functions.create_bins(fevii_pEQW_sort, 1)
+fevii_bins = np.array(pd.cut(fevii_pEQW_sort, bins = fevii_bins_template, right = True).value_counts())
+fevii_binned = np.array(np.split(fevii_scores_sort, fevii_bins), dtype = object)
 
 print(fevii_binned)
+
+fevii_scores_binned = np.zeros(len(fevii_binned))
+
+for i, sub in enumerate(fevii_binned):
+    fevii_scores_binned[i] = sum(sub)
+
+print(fevii_bins)
+print(fevii_scores_binned)
 
 """# FeX
 fex_scores = np.zeros((len(fex_pEQW), 2))

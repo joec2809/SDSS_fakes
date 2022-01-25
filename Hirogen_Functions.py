@@ -1054,6 +1054,76 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
 
     return file_paths
 
+def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_id_list, survey_list, run2d_list,
+                                            override_path_flag_list=[], override_path_list=[], Mode='peaks'):
+
+    file_paths = []
+
+    if Mode.lower() == 'peaks':
+
+        for ii, item in enumerate(plate_list):
+
+            if override_path_flag_list[ii] == 0:
+
+                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+
+                    file_paths.append(
+                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-peaks.fits"
+                    )
+
+                elif survey_list[ii] in ['eboss', 'boss']:
+                
+                    file_paths.append(
+                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-peaks.fits"
+                    )
+
+                else:
+                    print("Not sure how to handle this survey - exiting for now")
+                    print(f"{ii}\t{survey_list[ii]}")
+                    sys.exit()
+            
+            else:
+                file_paths.append(
+                    f"{override_path_list[ii]}"
+                )
+    
+    elif Mode.lower() == 'fakes':
+
+        for ii, item in enumerate(plate_list):
+
+            if override_path_flag_list[ii] == 0:
+
+                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+
+                    file_paths.append(
+                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-fake.fits"
+                    )
+
+                elif survey_list[ii] in ['eboss', 'boss']:
+                
+                    file_paths.append(
+                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                        f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-fake.fits"
+                    )
+
+                else:
+                    print("Not sure how to handle this survey - exiting for now")
+                    print(f"{ii}\t{survey_list[ii]}")
+                    sys.exit()
+            
+            else:
+                file_paths.append(
+                    f"{override_path_list[ii]}"
+                )
+            
+    else:
+        print('mode selection not recognised.\nPlease check and try again.')
+        sys.exit()
+
+    return file_paths
 
 def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxcar=5, median_filter=False,
                           med_filter_kernel=3, flag_check=False, z_correction_flag=0, extinction_correction_flag=0):

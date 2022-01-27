@@ -141,3 +141,6 @@ dr16/
 Hirogen_Outputs/
 Utility_Files/
 dr17/
+
+# Images
+*.png

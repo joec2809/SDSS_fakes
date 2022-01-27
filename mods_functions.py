@@ -89,12 +89,12 @@ def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, Fi
 
             if Survey in ['sdss', 'segue1', 'segue2']:             
 
-                filepath = f"{Main_Spectra_Path}/dr17/sdss/spectro/redux/{Run2D}/spectra/{Plate}/spec-{Plate}-{MJD}-{FiberID}-peaks.fits"
+                filepath = f"{Main_Spectra_Path}/dr16/sdss/spectro/redux/{Run2D}/spectra/{Plate}/spec-{Plate}-{MJD}-{FiberID}-peaks.fits"
                                 
 
             elif Survey in ['eboss', 'boss']:
             
-                filepath = f"{Main_Spectra_Path}/dr17/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}_peaks.fits"
+                filepath = f"{Main_Spectra_Path}/dr16/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}_peaks.fits"
 
             else:
                 print("Not sure how to handle this survey - exiting for now")
@@ -109,12 +109,12 @@ def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, Fi
 
             if Survey in ['sdss', 'segue1', 'segue2']:             
 
-                filepath = f"{Main_Spectra_Path}/dr17/sdss/spectro/redux/{Run2D}/spectra/{Plate}/spec-{Plate}-{MJD}-{FiberID}-fake.fits"
+                filepath = f"{Main_Spectra_Path}/dr16/sdss/spectro/redux/{Run2D}/spectra/{Plate}/spec-{Plate}-{MJD}-{FiberID}-fake.fits"
                                 
 
             elif Survey in ['eboss', 'boss']:
             
-                filepath = f"{Main_Spectra_Path}/dr17/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}-fake.fits"
+                filepath = f"{Main_Spectra_Path}/dr16/eboss/spectro/redux/{Run2D}/spectra/full/{Plate}/spec-{Plate}-{MJD}-{FiberID}-fake.fits"
 
             else:
                 print("Not sure how to handle this survey - exiting for now")

@@ -1031,14 +1031,14 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
             if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
 
                 file_paths.append(
-                    f"{general_path}/dr17/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                    f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
                     f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
                 )
 
             elif survey_list[ii] in ['eboss', 'boss']:
             
                 file_paths.append(
-                    f"{general_path}/dr17/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                    f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
                     f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
                 )
 
@@ -1068,14 +1068,14 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
                 if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
 
                     file_paths.append(
-                        f"{general_path}/dr17/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
                         f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-peaks.fits"
                     )
 
                 elif survey_list[ii] in ['eboss', 'boss']:
                 
                     file_paths.append(
-                        f"{general_path}/dr17/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
                         f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-peaks.fits"
                     )
 
@@ -1098,14 +1098,14 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
                 if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
 
                     file_paths.append(
-                        f"{general_path}/dr17/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
+                        f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
                         f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-fake.fits"
                     )
 
                 elif survey_list[ii] in ['eboss', 'boss']:
                 
                     file_paths.append(
-                        f"{general_path}/dr17/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
+                        f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
                         f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-fake.fits"
                     )
 

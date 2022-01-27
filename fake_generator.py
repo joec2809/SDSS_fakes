@@ -229,7 +229,7 @@ for i, spectrum in enumerate(galaxy_Object_Name_List):
 
     # Apply random scaling factor to peaks and error
 
-    scale_factor = uniform(0,1)
+    scale_factor = uniform(0.2,1)
 
     scaled_peak_flux = peak_flux * scale_factor
 

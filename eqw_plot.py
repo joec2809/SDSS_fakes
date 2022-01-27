@@ -18,8 +18,8 @@ from datetime import datetime, date
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
+#TableID = "SDSS_Fake_Spectra"
 TableID = "SDSS_Confirmed_Objects"
-
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -253,5 +253,7 @@ axs[1,1].set_title("FeXIV Lines")
 
 plt.setp(axs[-1, :], xlabel = r'Equivalent Width, $\AA$')
 plt.setp(axs[:, 0], ylabel = 'Detection Efficiency')
+
+plt.savefig("example_eqw_plot.png")
 
 plt.show()

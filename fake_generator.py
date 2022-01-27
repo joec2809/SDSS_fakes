@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 import Hirogen_Functions
 import mods_functions
 
@@ -25,8 +23,6 @@ np.set_printoptions(threshold=sys.maxsize)
 c = constants.value('speed of light in vacuum') / 1000
 
 smoothing_boxcar = 5
-
-scale_factors = np.around(np.arange(0.1, 1.1, 0.1), 1)
 
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)

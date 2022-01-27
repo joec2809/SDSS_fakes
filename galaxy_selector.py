@@ -20,7 +20,7 @@ User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
 Output_TableID = 'SDSS_Fake_Spectra'
 
-number_to_output = 50
+number_to_output = 1500
 
 User_Config = Hirogen_Functions.user_config(user=User)
 
@@ -182,117 +182,7 @@ while len(used_spectra) < number_to_output:
         continue
     used_spectra.append(j)
 
-    cmd = f"INSERT IGNORE INTO `{Database}`.`{Output_TableID}` (DR16_Spectroscopic_ID) " \
-            f"VALUES ({Object_Name_List[j]});"
-
-    cursor.execute(cmd)
-
-for i, j in enumerate(used_spectra):
-
-    cmd = f"update {Database}.{Output_TableID} " \
-        f"set Right_Ascension = '{RA[j]}'," \
-        f"Declination = '{DEC[j]}'," \
-        f"RA_HMS = '{RA_HMS[j]}'," \
-        f"DEC_DMS = '{DEC_HMS[j]}'," \
-        f"SDSS_ShortName = '{SDSS_Shortnames[j]}'," \
-        f"DR16_ParentID = '{DR16_ParentID[j]}'," \
-        f"DR16_Photometric_ID = '{DR16_PhotometricID[j]}'," \
-        f"SDSS_DR16_Explore_Link ='{SDSS_Explore_Links[j]}'," \
-        f"SDSS_DR16_Navigate_Link ='{SDSS_Navigate_Links[j]}'," \
-        f"survey = '{Survey[j]}'," \
-        f"run2d = '{Run2D[j]}'," \
-        f"field = '{Field[j]}'," \
-        f"spec_Plate = '{Plate[j]}'," \
-        f"spec_MJD = '{MJD[j]}' ," \
-        f"spec_FiberID = '{FiberID[j]}'," \
-        f"SDSS_Type = '{SDSS_Type[j]}'," \
-        f"spec_class_SDSS = '{Spec_Classification[j]}'," \
-        f"spec_subclass_SDSS = '{Spec_Sub_Classification[j]}'," \
-        f"spec_Human_Comments = '{Spec_Human_Comments[j]}'," \
-        f"z_SDSS_spec = '{Spec_z[j]}'," \
-        f"z_err_SDSS_spec = '{Spec_z_err[j]}'," \
-        f"z_warning_SDSS_spec = '{Spec_z_warning[j]}'," \
-        f"Distance_MPC = '{Distance[j]}'," \
-        f"Max_Distance_MPC = '{MaxDistance[j]}'," \
-        f"Min_Distance_MPC = '{MinDistance[j]}'," \
-        f"Distance_Modulus='{Distance_Modulus[j]}'," \
-        f"Distance_Modulus_Err='{Distance_Modulus_Err[j]}'," \
-        f"median_SNR_SDSS_spec = '{Median_SNR[j]}'," \
-        f"u_extinction = '{Extinction_u[j]}'," \
-        f"g_extinction = '{Extinction_g[j]}'," \
-        f"r_extinction = '{Extinction_r[j]}'," \
-        f"i_extinction = '{Extinction_i[j]}'," \
-        f"z_extinction = '{Extinction_z[j]}'," \
-        f"generalised_extinction = '{Mean_E_BminusV[j]}'," \
-        f"u_petro_mag = '{Petrosian_u[j]}'," \
-        f"u_petro_mag_err = '{Petrosian_u_err[j]}'," \
-        f"u_petro_AB_mag = '{Petrosian_u_AB[j]}'," \
-        f"u_petro_AB_mag_err = '{Petrosian_u_AB_err[j]}'," \
-        f"u_petro_rad= '{Petrosian_u_rad[j]}'," \
-        f"u_petro_rad_err= '{Petrosian_u_rad_err[j]}'," \
-        f"g_petro_mag = '{Petrosian_g[j]}'," \
-        f"g_petro_mag_err = '{Petrosian_g_err[j]}'," \
-        f"g_petro_AB_mag = '{Petrosian_g_AB[j]}'," \
-        f"g_petro_AB_mag_err = '{Petrosian_g_AB_err[j]}'," \
-        f"g_petro_rad= '{Petrosian_g_rad[j]}'," \
-        f"g_petro_rad_err= '{Petrosian_g_rad_err[j]}'," \
-        f"r_petro_mag = '{Petrosian_r[j]}'," \
-        f"r_petro_mag_err = '{Petrosian_r_err[j]}'," \
-        f"r_petro_AB_mag = '{Petrosian_r_AB[j]}'," \
-        f"r_petro_AB_mag_err = '{Petrosian_r_AB_err[j]}'," \
-        f"r_petro_rad= '{Petrosian_r_rad[j]}'," \
-        f"r_petro_rad_err= '{Petrosian_r_rad_err[j]}'," \
-        f"i_petro_mag = '{Petrosian_i[j]}'," \
-        f"i_petro_mag_err = '{Petrosian_i_err[j]}'," \
-        f"i_petro_AB_mag = '{Petrosian_i_AB[j]}'," \
-        f"i_petro_AB_mag_err = '{Petrosian_i_AB_err[j]}'," \
-        f"i_petro_rad= '{Petrosian_i_rad[j]}'," \
-        f"i_petro_rad_err= '{Petrosian_i_rad_err[j]}'," \
-        f"z_petro_mag = '{Petrosian_z[j]}'," \
-        f"z_petro_mag_err = '{Petrosian_z_err[j]}'," \
-        f"z_petro_AB_mag = '{Petrosian_z_AB[j]}'," \
-        f"z_petro_AB_mag_err = '{Petrosian_z_AB_err[j]}'," \
-        f"z_petro_rad= '{Petrosian_z_rad[j]}'," \
-        f"z_petro_rad_err= '{Petrosian_z_rad_err[j]}'," \
-        f"Petro_Total_Host_Mass_Estimate = '{TotalHostMassEstimate_Petro[j]}'," \
-        f"Petro_Total_Host_Mass_Estimate_err = '{TotalHostMassEstimate_Err_Petro[j]}'," \
-        f"Model_Total_Host_Mass_Estimate = '{TotalHostMassEstimate_Model[j]}'," \
-        f"Model_Total_Host_Mass_Estimate_err = '{TotalHostMassEstimate_Err_Model[j]}'," \
-        f"u_model_mag = '{Model_u[j]}'," \
-        f"u_model_mag_err = '{Model_u_err[j]}'," \
-        f"u_model_AB_mag = '{Model_u_AB[j]}'," \
-        f"u_model_AB_mag_err = '{Model_u_AB_err[j]}'," \
-        f"g_model_mag = '{Model_g[j]}'," \
-        f"g_model_mag_err = '{Model_g_err[j]}'," \
-        f"g_model_AB_mag = '{Model_g_AB[j]}'," \
-        f"g_model_AB_mag_err = '{Model_g_AB_err[j]}'," \
-        f"r_model_mag = '{Model_r[j]}'," \
-        f"r_model_mag_err = '{Model_r_err[j]}'," \
-        f"r_model_AB_mag = '{Model_r_AB[j]}'," \
-        f"r_model_AB_mag_err = '{Model_r_AB_err[j]}'," \
-        f"i_model_mag = '{Model_i[j]}'," \
-        f"i_model_mag_err = '{Model_i_err[j]}'," \
-        f"i_model_AB_mag = '{Model_i_AB[j]}'," \
-        f"i_model_AB_mag_err = '{Model_i_AB_err[j]}'," \
-        f"z_model_mag = '{Model_z[j]}'," \
-        f"z_model_mag_err = '{Model_z_err[j]}'," \
-        f"z_model_AB_mag = '{Model_z_AB[j]}'," \
-        f"z_model_AB_mag_err = '{Model_z_AB_err[j]}'," \
-        f"u_minus_r_petro = '{Petrosian_u_minus_r[j]}'," \
-        f"u_minus_r_petro_observation_err = '{Petrosian_u_minus_r_observation_err[j]}'," \
-        f"g_minus_r_petro = '{Petrosian_g_minus_r[j]}'," \
-        f"g_minus_r_petro_observation_err = '{Petrosian_g_minus_r_observation_err[j]}'," \
-        f"g_minus_i_petro = '{Petrosian_g_minus_i[j]}'," \
-        f"g_minus_i_petro_observation_err = '{Petrosian_g_minus_i_observation_err[j]}'," \
-        f"u_minus_r_model = '{Model_u_minus_r[j]}'," \
-        f"u_minus_r_model_observation_err = '{Model_u_minus_r_observation_err[j]}'," \
-        f"g_minus_r_model = '{Model_g_minus_r[j]}'," \
-        f"g_minus_r_model_observation_err = '{Model_g_minus_r_observation_err[j]}'," \
-        f"g_minus_i_model = '{Model_g_minus_i[j]}'," \
-        f"g_minus_i_model_observation_err = '{Model_g_minus_i_observation_err[j]}'," \
-        f"flags = '{Spec_Flags[j]}'," \
-        f"clean = '{Clean_Flag[j]}'," \
-        f" where DR16_Spectroscopic_ID = '{Object_Name_List[j]}' "
+    cmd = f"INSERT INTO {Database}.{Output_TableID} SELECT * FROM {Database}.{Input_TableID} WHERE DR16_Spectroscopic_ID = {Object_Name_List[j]};"
 
     cursor.execute(cmd)
 

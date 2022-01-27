@@ -18,8 +18,7 @@ from datetime import datetime, date
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
-#TableID = "SDSS_Fake_Spectra"
-TableID = "SDSS_Confirmed_Objects"
+TableID = "SDSS_Fake_Spectra"
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -114,6 +113,7 @@ fevii_detection_efficiency = total_fevii_scores/bin_sizes
 fevii_bin_centres = np.zeros(len(fevii_detection_efficiency))
 for i in range(len(fevii_bin_centres)):
     fevii_bin_centres[i] = (fevii_bins[i] + fevii_bins[i+1])/2
+
 
 # FeX, same process as above
 fex_pEQW = np.array(fex_pEQW)
@@ -251,9 +251,8 @@ axs[1,0].set_title("FeXI Lines")
 axs[1,1].plot(fexiv_bin_centres, fexiv_detection_efficiency)
 axs[1,1].set_title("FeXIV Lines")
 
+plt.setp(axs[0, :], xlabel = r'Equivalent Width, $\AA$')
 plt.setp(axs[-1, :], xlabel = r'Equivalent Width, $\AA$')
 plt.setp(axs[:, 0], ylabel = 'Detection Efficiency')
-
-plt.savefig("example_eqw_plot.png")
 
 plt.show()

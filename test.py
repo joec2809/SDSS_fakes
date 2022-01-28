@@ -17,3 +17,8 @@ from astropy import units as u
 from mysql.connector import errorcode
 from astropy.convolution import convolve, Box1DKernel
 from random import uniform
+
+number = -175
+factor = 20
+
+print(mods_functions.next_lowest_multiple(number, factor))

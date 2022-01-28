@@ -152,6 +152,10 @@ def create_bins(sorted_pEQWs, bin_size):
     bins = np.linspace(lower_lim, upper_lim, number_of_bins, endpoint = True)
     return bins
 
+def next_lowest_multiple(number, factor):
+    return np.floor(number/factor)*factor
+
+
 def spectra_resizer(ecle_wavelengths, ecle_flux, ecle_flux_err, ecle_flags, galaxy_wavelengths, galaxy_flux, galaxy_flux_err, galaxy_flags):
 
     if ecle_wavelengths[0] > galaxy_wavelengths[0]:

@@ -173,7 +173,9 @@ peaks_FilePaths = Hirogen_Functions.sdss_peaks_spectra_file_path_generator(
     ecle_Path_Override_Flag_List, ecle_Path_Override_List
 )
 
-for i, spectrum in enumerate(galaxy_Object_Name_List):
+i = 0
+
+while i < len(galaxy_data):
 
     with fits.open(galaxy_FilePaths[i], comments='#') as hdul:
             galaxy_header = hdul[0].header
@@ -245,6 +247,20 @@ for i, spectrum in enumerate(galaxy_Object_Name_List):
                                                                                                                             galaxy_lamb_rest, galaxy_flux_with_continua,
                                                                                                                             galaxy_flux_err, galaxy_flags)
 
+    if len(peak_flux) > len(galaxy_flux):
+        new_peak_flux = np.delete(peak_flux, -1)
+        new_galaxy_flux = galaxy_flux
+        new_peak_flux_err = np.delete(peak_flux_err, -1)
+        new_galaxy_flux_err = galaxy_flux_err
+    elif len(galaxy_flux) > len(peak_flux):
+        new_galaxy_flux = np.delete(galaxy_flux, -1)
+        new_peak_flux = peak_flux
+        new_galaxy_flux_err = np.delete(galaxy_flux_err, -1)
+        new_peak_flux_err = peak_flux_err
+
+    if len(peak_flux) != len(galaxy_flux):
+        continue
+
     # Create fake spectra and error propagation
 
     fake_flux = peak_flux + galaxy_flux
@@ -257,3 +273,5 @@ for i, spectrum in enumerate(galaxy_Object_Name_List):
 
     mods_functions.fits_file_gen(save_wave, fake_flux, new_flux_err, galaxy_flags, Main_Spectra_Path, galaxy_Plate_List[i], galaxy_MJD_List[i], galaxy_FiberID_List[i],
                                 galaxy_Survey_List[i], galaxy_run2d_List[i], galaxy_Path_Override_Flag_List[i], galaxy_Path_Override_List[i], 'fakes')
+
+    i += 1

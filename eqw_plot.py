@@ -1,5 +1,6 @@
 import sys
 import time
+from timeit import default_timer
 import warnings
 import math
 import os
@@ -11,6 +12,7 @@ import scipy.constants as constants
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from scipy.interpolate import CubicSpline
 from astropy import units as u
 from astropy.visualization import hist
 from datetime import datetime, date
@@ -86,11 +88,11 @@ new_fevii_scores = np.delete(fevii_scores, nans)
 
 # Sort arrays by pEQW
 fevii_sort_ind = new_fevii_pEQW.argsort()
-fevii_pEQW_sort = fevii_pEQW[fevii_sort_ind]
-fevii_scores_sort = fevii_scores[fevii_sort_ind]
+fevii_pEQW_sort = new_fevii_pEQW[fevii_sort_ind]
+fevii_scores_sort = new_fevii_scores[fevii_sort_ind]
 
 # Sort pEQWs and scores into bins
-fevii_info = pd.cut(fevii_pEQW_sort, 20, retbins=True)
+fevii_info = pd.qcut(fevii_pEQW_sort, 20, retbins=True)
 
 fevii_cuts = np.cumsum(fevii_info[0].value_counts())[:-1]
 
@@ -114,7 +116,7 @@ fevii_bin_centres = np.zeros(len(fevii_detection_efficiency))
 for i in range(len(fevii_bin_centres)):
     fevii_bin_centres[i] = (fevii_bins[i] + fevii_bins[i+1])/2
 
-
+"""
 # FeX, same process as above
 fex_pEQW = np.array(fex_pEQW)
 fex_scores = np.array(ecle_candidate)
@@ -124,10 +126,10 @@ new_fex_pEQW = np.delete(fex_pEQW, nans)
 new_fex_scores = np.delete(fex_scores, nans)
 
 fex_sort_ind = new_fex_pEQW.argsort()
-fex_pEQW_sort = fex_pEQW[fex_sort_ind]
-fex_scores_sort = fex_scores[fex_sort_ind]
+fex_pEQW_sort = new_fex_pEQW[fex_sort_ind]
+fex_scores_sort = new_fex_scores[fex_sort_ind]
 
-fex_info = pd.cut(fex_pEQW_sort, 20, retbins=True)
+fex_info = pd.qcut(fex_pEQW_sort, 20, retbins=True)
 
 fex_cuts = np.cumsum(fex_info[0].value_counts())[:-1]
 
@@ -160,10 +162,10 @@ new_fexi_pEQW = np.delete(fexi_pEQW, nans)
 new_fexi_scores = np.delete(fexi_scores, nans)
 
 fexi_sort_ind = new_fexi_pEQW.argsort()
-fexi_pEQW_sort = fexi_pEQW[fexi_sort_ind]
-fexi_scores_sort = fexi_scores[fexi_sort_ind]
+fexi_pEQW_sort = new_fexi_pEQW[fexi_sort_ind]
+fexi_scores_sort = new_fexi_scores[fexi_sort_ind]
 
-fexi_info = pd.cut(fexi_pEQW_sort, 20, retbins=True)
+fexi_info = pd.qcut(fexi_pEQW_sort, 20, retbins=True)
 
 fexi_cuts = np.cumsum(fexi_info[0].value_counts())[:-1]
 
@@ -196,10 +198,10 @@ new_fexiv_pEQW = np.delete(fexiv_pEQW, nans)
 new_fexiv_scores = np.delete(fexiv_scores, nans)
 
 fexiv_sort_ind = np.argsort(new_fexiv_pEQW)
-fexiv_pEQW_sort = fexiv_pEQW[fexiv_sort_ind]
-fexiv_scores_sort = fexiv_scores[fexiv_sort_ind]
+fexiv_pEQW_sort = new_fexiv_pEQW[fexiv_sort_ind]
+fexiv_scores_sort = new_fexiv_scores[fexiv_sort_ind]
 
-fexiv_info = pd.cut(fexiv_pEQW_sort, 20, retbins=True)
+fexiv_info = pd.qcut(fexiv_pEQW_sort, 20, retbins=True)
 
 fexiv_cuts = np.cumsum(fexiv_info[0].value_counts())[:-1]
 
@@ -222,18 +224,6 @@ fexiv_bin_centres = np.zeros(len(fexiv_detection_efficiency))
 for i in range(len(fexiv_bin_centres)):
     fexiv_bin_centres[i] = (fexiv_bins[i] + fexiv_bins[i+1])/2
 
-print(fevii_bin_centres)
-print(f"fevii {fevii_detection_efficiency}")
-
-print(fex_bin_centres)
-print(f"fex {fex_detection_efficiency}")
-
-print(fexi_bin_centres)
-print(f"fexi {fexi_detection_efficiency}")
-
-print(fexiv_bin_centres)
-print(f"fexiv {fexiv_detection_efficiency}")
-
 
 # Plot pEQw vs detection efficiency
 
@@ -254,5 +244,67 @@ axs[1,1].set_title("FeXIV Lines")
 plt.setp(axs[0, :], xlabel = r'Equivalent Width, $\AA$')
 plt.setp(axs[-1, :], xlabel = r'Equivalent Width, $\AA$')
 plt.setp(axs[:, 0], ylabel = 'Detection Efficiency')
+"""
+fevii_pEQW = np.array(fevii_pEQW)
+nans = np.argwhere(fevii_pEQW <= -999)
+fevii_pEQW[nans] = 0
+
+fex_pEQW = np.array(fex_pEQW)
+nans = np.argwhere(fex_pEQW <= -999)
+fex_pEQW[nans] = 0
+
+fexi_pEQW = np.array(fexi_pEQW)
+nans = np.argwhere(fexi_pEQW <= -999)
+fexi_pEQW[nans] = 0
+
+fexiv_pEQW = np.array(fexiv_pEQW)
+nans = np.argwhere(fexiv_pEQW <= -999)
+fexiv_pEQW[nans] = 0
+
+total_pEQW = (fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW)
+
+total_sort_ind = np.argsort(total_pEQW)
+total_pEQW_sort = total_pEQW[total_sort_ind]
+scores_sort = ecle_candidate[total_sort_ind]
+
+total_info = pd.cut(total_pEQW_sort, 20, retbins=True)
+
+total_cuts = np.cumsum(total_info[0].value_counts())[:-1]
+
+total_bins = total_info[1]
+
+scores_binned = np.split(scores_sort, total_cuts)
+
+total_scores = np.zeros(len(scores_binned))
+
+for i, array in enumerate(scores_binned):
+    total_scores[i] = sum(array)
+
+bin_sizes = np.zeros(len(scores_binned))
+for i, array in enumerate(scores_binned):
+    bin_sizes[i] = len(array)
+
+detection_efficiency = total_scores/bin_sizes
+
+bin_centres = np.zeros(len(detection_efficiency))
+for i in range(len(bin_centres)):
+    bin_centres[i] = (total_bins[i] + total_bins[i+1])/2
+
+not_nans = ~np.isnan(detection_efficiency)
+fin_detection_eff = detection_efficiency[not_nans]
+fin_bin_centres = bin_centres[not_nans]
+
+cs = CubicSpline(fin_bin_centres, fin_detection_eff)
+xs = np.arange(-300, 10, 20)
+
+fig, ax = plt.subplots()
+
+ax.scatter(bin_centres, detection_efficiency)
+ax.plot(xs, cs(xs), marker = ',')
+ax.set_xlabel(r'Equivalent Width, $\AA$')
+ax.set_ylabel('Detection Efficiency')
+ax.set_ylim(-0.1,1.1)
+
+plt.savefig("example_detection_efficiency_plot.png")
 
 plt.show()

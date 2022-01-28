@@ -14,13 +14,13 @@ from astropy.io import fits
 from astropy import units as u
 from mysql.connector import errorcode
 from astropy.convolution import convolve, Box1DKernel
-from random import randint
+from random import randrange
 
 User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
 Output_TableID = 'SDSS_Fake_Spectra'
 
-number_to_output = 1500
+number_to_output = 5000
 
 User_Config = Hirogen_Functions.user_config(user=User)
 
@@ -177,7 +177,7 @@ else:
 used_spectra = []
 
 while len(used_spectra) < number_to_output:
-    j = randint(0,len(Candidate_Data))
+    j = randrange(len(Candidate_Data))
     if j in used_spectra:
         continue
     used_spectra.append(j)

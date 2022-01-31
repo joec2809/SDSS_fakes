@@ -78,7 +78,7 @@ cursor = Data.cursor()
 cursor.execute(
         f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
         f"survey, run2d, Standard_Inclusion,Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override,"
-        f"z_corrected_flag, extinction_corrected_flag "
+        f"z_corrected_flag, extinction_corrected_flag, lin_con_pEQW_OIII5007, lin_con_LineFlux_OIII5007 "
         f"FROM `{Database}`.`{Spectra_TableID}`"
         #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
         #f"WHERE lin_con_pEQW_Halpha is NULL"
@@ -113,6 +113,8 @@ if len(galaxy_data) >= 1:
     galaxy_Smoothing_Override_List = [item[12] for item in galaxy_data]
     galaxy_z_Correction_Override_List = [item[13] for item in galaxy_data]
     galaxy_Extinction_Correction_Override_List = [item[14] for item in galaxy_data]
+    galaxy_OIII_pEQW = [item[15] for item in galaxy_data]
+    galaxy_OIII_flux = [item[16] for item in galaxy_data]
 
 else:
     print("galaxy_data Length error: Check and try again.")
@@ -127,7 +129,7 @@ galaxy_FilePaths = Hirogen_Functions.sdss_spectra_file_path_generator(
 cursor.execute(
     f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
     f"survey, run2d, Standard_Inclusion,Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override,"
-    f"z_corrected_flag, extinction_corrected_flag "
+    f"z_corrected_flag, extinction_corrected_flag, lin_con_LineFlux_FeVII6008, lin_con_LineFlux_FeX6376, lin_con_LineFlux_FeXI7894, lin_con_LineFlux_FeXIV5304 "
     f"FROM `{Database}`.`{Objects_TableID}`"
     #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
     #f"WHERE lin_con_pEQW_Halpha is NULL"
@@ -162,6 +164,10 @@ if len(ecle_data) >= 1:
     ecle_Smoothing_Override_List = [item[12] for item in ecle_data]
     ecle_z_Correction_Override_List = [item[13] for item in ecle_data]
     ecle_Extinction_Correction_Override_List = [item[14] for item in ecle_data]
+    ecle_FeVII_flux = [item[15] for item in ecle_data]
+    ecle_FeX_flux = [item[16] for item in ecle_data]
+    ecle_FeXI_flux = [item[17] for item in ecle_data]
+    ecle_FeXIV_flux = [item[18] for item in ecle_data]
 
 else:
     print("ecle_data Length error: Check and try again.")
@@ -227,7 +233,17 @@ while i < len(galaxy_data):
 
     # Apply random scaling factor to peaks and error
 
-    scale_factor = uniform(0.2,1)
+    if galaxy_OIII_pEQW[i] < LineDetection_pEQW_Threshold:
+        Fe_flux = np.array([ecle_FeVII_flux[peak_file_idx], ecle_FeX_flux[peak_file_idx], ecle_FeXI_flux[peak_file_idx], ecle_FeXIV_flux[peak_file_idx]])
+        max_Fe_flux = np.max(Fe_flux)
+        if galaxy_OIII_flux[i] > max_Fe_flux:
+            scale_factor_max = galaxy_OIII_flux[i]/max_Fe_flux
+        else:
+            scale_factor_max = 1
+    else:
+        scale_factor_max = 1
+
+    scale_factor = uniform(0,scale_factor_max)
 
     scaled_peak_flux = peak_flux * scale_factor
 
@@ -247,7 +263,7 @@ while i < len(galaxy_data):
                                                                                                                             galaxy_lamb_rest, galaxy_flux_with_continua,
                                                                                                                             galaxy_flux_err, galaxy_flags)
 
-    if len(peak_flux) > len(galaxy_flux):
+    """if len(peak_flux) > len(galaxy_flux):
         new_peak_flux = np.delete(peak_flux, -1)
         new_galaxy_flux = galaxy_flux
         new_peak_flux_err = np.delete(peak_flux_err, -1)
@@ -256,9 +272,10 @@ while i < len(galaxy_data):
         new_galaxy_flux = np.delete(galaxy_flux, -1)
         new_peak_flux = peak_flux
         new_galaxy_flux_err = np.delete(galaxy_flux_err, -1)
-        new_peak_flux_err = peak_flux_err
+        new_peak_flux_err = peak_flux_err"""
 
     if len(peak_flux) != len(galaxy_flux):
+        print("Redo")
         continue
 
     # Create fake spectra and error propagation
@@ -275,3 +292,4 @@ while i < len(galaxy_data):
                                 galaxy_Survey_List[i], galaxy_run2d_List[i], galaxy_Path_Override_Flag_List[i], galaxy_Path_Override_List[i], 'fakes')
 
     i += 1
+    print(i)

@@ -167,15 +167,15 @@ fevii_pEQW = np.array(galaxy_fevii_pEQW)
 nans = np.argwhere(fevii_pEQW <= -999)
 fevii_pEQW[nans] = 0
 
-fex_pEQW = np.array(fake_fex_pEQW)
+fex_pEQW = np.array(galaxy_fex_pEQW)
 nans = np.argwhere(fex_pEQW <= -999)
 fex_pEQW[nans] = 0
 
-fexi_pEQW = np.array(fake_fexi_pEQW)
+fexi_pEQW = np.array(galaxy_fexi_pEQW)
 nans = np.argwhere(fexi_pEQW <= -999)
 fexi_pEQW[nans] = 0
 
-fexiv_pEQW = np.array(fake_fexiv_pEQW)
+fexiv_pEQW = np.array(galaxy_fexiv_pEQW)
 nans = np.argwhere(fexiv_pEQW <= -999)
 fexiv_pEQW[nans] = 0
 
@@ -191,30 +191,15 @@ error_cuts = np.cumsum(bins_cut.value_counts())[:-1]
 
 pEQW_for_error = np.split(galaxy_pEQW_sort, error_cuts)
 
-error = np.zeros(len(pEQW_for_error))
+pEQW_error = np.zeros(len(pEQW_for_error))
+
+scores_for_error = np.split(galaxy_scores_sort, error_cuts)
+
+score_error = np.zeros(len(scores_for_error))
 
 for i, arr in enumerate(pEQW_for_error):
-    error[i] = np.std(arr)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    pEQW_error[i] = np.std(arr)
+    score_error[i] = np.std(scores_for_error[i])
 
 not_nans = ~np.isnan(detection_efficiency)
 fin_detection_eff = detection_efficiency[not_nans]
@@ -225,9 +210,8 @@ one_d = interp1d(fin_bin_centres, fin_detection_eff)
 xs = np.arange(bin_centres[0], bin_centres[-1], 1)
 
 fig, ax = plt.subplots()
-ax.plot(xs, cs(xs), marker = ',')
-ax.plot(xs, one_d(xs), marker = ',')
-ax.errorbar(bin_centres, detection_efficiency, xerr = error, fmt = 'k.', ls = 'none', capsize = 5)
+ax.plot(xs, cs(xs))
+ax.errorbar(bin_centres, detection_efficiency, xerr = pEQW_error, yerr = score_error, fmt = 'k.', ls = 'none', capsize = 5)
 
 ax.set_xlabel(r'Equivalent Width, $\AA$')
 ax.set_ylabel('Detection Efficiency')

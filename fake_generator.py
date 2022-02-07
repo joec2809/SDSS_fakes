@@ -15,6 +15,7 @@ from astropy import units as u
 from mysql.connector import errorcode
 from astropy.convolution import convolve, Box1DKernel
 from random import uniform
+from statistics import mean
 
 # This code takes the 7 confirmed ECLE objects, produces 9 scaled copies of each and saves them as fits files
 # It also adds the corresponding info to an SQL table that contains other galaxy spectra
@@ -27,7 +28,7 @@ smoothing_boxcar = 5
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
-Objects_TableID = "SDSS_Confirmed_Objects"
+Objects_TableID = "SDSS_Confirmed_Spectra"
 Spectra_TableID = 'SDSS_Fake_Spectra'
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
@@ -78,7 +79,7 @@ cursor = Data.cursor()
 cursor.execute(
         f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
         f"survey, run2d, Standard_Inclusion,Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override,"
-        f"z_corrected_flag, extinction_corrected_flag, lin_con_pEQW_OIII5007, lin_con_LineFlux_OIII5007 "
+        f"z_corrected_flag, extinction_corrected_flag, lin_con_pEQW_OIII5007, lin_con_LineFlux_OIII5007, lin_con_pEQW_Hbeta, lin_con_LineFlux_Hbeta "
         f"FROM `{Database}`.`{Spectra_TableID}`"
         #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
         #f"WHERE lin_con_pEQW_Halpha is NULL"
@@ -115,6 +116,8 @@ if len(galaxy_data) >= 1:
     galaxy_Extinction_Correction_Override_List = [item[14] for item in galaxy_data]
     galaxy_OIII_pEQW = [item[15] for item in galaxy_data]
     galaxy_OIII_flux = [item[16] for item in galaxy_data]
+    galaxy_Hbeta_pEQW = [item[17] for item in galaxy_data]
+    galaxy_Hbeta_flux = [item[18] for item in galaxy_data]
 
 else:
     print("galaxy_data Length error: Check and try again.")
@@ -181,6 +184,8 @@ peaks_FilePaths = Hirogen_Functions.sdss_peaks_spectra_file_path_generator(
 
 i = 0
 
+avg_max_scale_factor = [1]
+
 while i < len(galaxy_data):
 
     with fits.open(galaxy_FilePaths[i], comments='#') as hdul:
@@ -211,7 +216,7 @@ while i < len(galaxy_data):
 
     # Choose random ECLE peaks
 
-    peak_file_idx = np.random.randint(0,7)
+    peak_file_idx = np.random.randint(0,len(ecle_data))
 
     peak_filepath = peaks_FilePaths[peak_file_idx]
 
@@ -233,15 +238,18 @@ while i < len(galaxy_data):
 
     # Apply random scaling factor to peaks and error
 
-    if galaxy_OIII_pEQW[i] < LineDetection_pEQW_Threshold:
+    scale_factor_max = mean(avg_max_scale_factor)
+
+    if galaxy_OIII_pEQW[i] < LineDetection_pEQW_Threshold or galaxy_Hbeta_pEQW[i] < LineDetection_pEQW_Threshold:
         Fe_flux = np.array([ecle_FeVII_flux[peak_file_idx], ecle_FeX_flux[peak_file_idx], ecle_FeXI_flux[peak_file_idx], ecle_FeXIV_flux[peak_file_idx]])
         max_Fe_flux = np.max(Fe_flux)
-        if galaxy_OIII_flux[i] > max_Fe_flux:
-            scale_factor_max = galaxy_OIII_flux[i]/max_Fe_flux
-        else:
-            scale_factor_max = 1
-    else:
-        scale_factor_max = 1
+        if galaxy_OIII_flux[i] >= galaxy_Hbeta_flux[i]:
+            if galaxy_OIII_flux[i] > max_Fe_flux:
+                scale_factor_max = galaxy_OIII_flux[i]/max_Fe_flux
+        elif galaxy_Hbeta_flux[i] > galaxy_OIII_flux[i]:
+            if galaxy_Hbeta_flux[i] > max_Fe_flux:
+                scale_factor_max = galaxy_Hbeta_flux[i]/max_Fe_flux
+
 
     scale_factor = uniform(0,scale_factor_max)
 

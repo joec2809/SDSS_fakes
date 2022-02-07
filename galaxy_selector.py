@@ -20,7 +20,7 @@ User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
 Output_TableID = 'SDSS_Fake_Spectra'
 
-number_to_output = 5000
+number_to_output = 10000
 
 User_Config = Hirogen_Functions.user_config(user=User)
 
@@ -34,18 +34,7 @@ print("\n")
 cursor = Data.cursor()
 
 cursor.execute(
-        f"SELECT DR16_Spectroscopic_ID, SDSS_ShortName, SDSS_DR16_Explore_Link, SDSS_DR16_Navigate_Link, survey, Right_Ascension, Declination, RA_HMS, DEC_DMS, "
-        f"DR16_ParentID, DR7_Photometric_ID, DR16_Photometric_ID, median_SNR_SDSS_spec, z_SDSS_spec, z_err_SDSS_spec, z_warning_SDSS_spec, Distance_MPC, Max_Distance_MPC, "
-        f"Min_Distance_MPC, Distance_Modulus, Distance_Modulus_Err, run2d, field, spec_MJD, spec_Plate, spec_FiberID, SDSS_Type, spec_class_SDSS, "
-        f"spec_subclass_SDSS, spec_Human_comments, u_extinction, g_extinction, r_extinction, i_extinction, z_extinction, generalised_extinction, "
-        f"clean, flags, u_petro_mag, u_petro_mag_err, u_petro_AB_mag, u_petro_AB_mag_err, u_petro_rad, u_petro_rad_err, g_petro_mag, g_petro_mag_err, g_petro_AB_mag, g_petro_AB_mag_err, g_petro_rad, g_petro_rad_err, "
-        f"r_petro_mag, r_petro_mag_err, r_petro_AB_mag, r_petro_AB_mag_err, r_petro_rad, r_petro_rad_err, i_petro_mag, i_petro_mag_err, i_petro_AB_mag, "
-        f"i_petro_AB_mag_err, i_petro_rad, i_petro_rad_err, z_petro_mag, z_petro_mag_err, z_petro_AB_mag, z_petro_AB_mag_err, z_petro_rad, z_petro_rad_err, "
-        f"u_minus_r_petro, u_minus_r_petro_observation_err, g_minus_r_petro, g_minus_r_petro_observation_err, g_minus_i_petro, g_minus_i_petro_observation_err, "
-        f"u_model_mag, u_model_mag_err, u_model_AB_mag, u_model_AB_mag_err, g_model_mag, g_model_mag_err, g_model_AB_mag, g_model_AB_mag_err, r_model_mag, "
-        f"r_model_mag_err, r_model_AB_mag, r_model_AB_mag_err, i_model_mag, i_model_mag_err, i_model_AB_mag, i_model_AB_mag_err, z_model_mag, z_model_mag_err, "
-        f"z_model_AB_mag, z_model_AB_mag_err, u_minus_r_model, u_minus_r_model_observation_err, g_minus_r_model, g_minus_r_model_observation_err, g_minus_i_model, "
-        f"g_minus_i_model_observation_err, Petro_Total_Host_Mass_Estimate, Petro_Total_Host_Mass_Estimate_err, Model_Total_Host_Mass_Estimate, Model_Total_Host_Mass_Estimate_err "
+        f"SELECT DR16_Spectroscopic_ID "
         f"FROM `{Database}`.`{Input_TableID}`"
         #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
         #f"WHERE lin_con_pEQW_Halpha is NULL"

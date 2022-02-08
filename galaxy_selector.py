@@ -18,7 +18,7 @@ from random import randrange
 
 User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
-Output_TableID = 'SDSS_Fake_Spectra'
+Output_TableID = 'SDSS_FeVII_Fake_Spectra'
 
 number_to_output = 10000
 

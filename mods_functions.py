@@ -40,6 +40,8 @@ def peak_selector(flux, wavelengths, line_names):
             flux_without_peaks[peak_start:peak_start+len(continuum[0])] = continuum[0]
 
     flux -= flux_without_peaks
+    negatives = np.argwhere(flux < 0)
+    flux[negatives] = 0
     return flux
 
 def peak_remover(flux, wavelengths, line_names):
@@ -132,28 +134,13 @@ def fits_file_gen(wave, flux, flux_err, flags, Main_Spectra_Path, Plate, MJD, Fi
     
     return None
 
+
 def find_nearest(array, number):
     array = np.asarray(array)
     if type(number) == u.quantity.Quantity:
         number = number.value
     idx = (np.abs(array - number)).argmin()
     return idx
-
-def create_bins(sorted_pEQWs, bin_size):
-    
-    start = sorted_pEQWs[0]
-    lower_lim = np.floor(start*2)/2
-
-    end = sorted_pEQWs[-1]
-    upper_lim = np.ceil(end*2)/2
-
-    number_of_bins = int((np.abs(lower_lim) + np.abs(upper_lim))/bin_size)+1
-    
-    bins = np.linspace(lower_lim, upper_lim, number_of_bins, endpoint = True)
-    return bins
-
-def next_lowest_multiple(number, factor):
-    return np.floor(number/factor)*factor
 
 
 def spectra_resizer(ecle_wavelengths, ecle_flux, ecle_flux_err, ecle_flags, galaxy_wavelengths, galaxy_flux, galaxy_flux_err, galaxy_flags):

@@ -29,7 +29,7 @@ User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
 Objects_TableID = "SDSS_Confirmed_Spectra"
-Spectra_TableID = 'SDSS_Fake_Spectra'
+Spectra_TableID = 'SDSS_FeVII_Fake_Spectra'
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
 
@@ -129,11 +129,17 @@ galaxy_FilePaths = Hirogen_Functions.sdss_spectra_file_path_generator(
     galaxy_Path_Override_Flag_List, galaxy_Path_Override_List
 )
 
+# FeVII IDs
+IDs = (2583945021774391296, 1544754514769242112)
+
+# Non-FeVII IDs
+#IDs = (961619990203623424, 1955789619387721728, 2380274238536837120)
+
 cursor.execute(
     f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
-    f"survey, run2d, Standard_Inclusion,Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override,"
+    f"survey, run2d, Standard_Inclusion, Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override,"
     f"z_corrected_flag, extinction_corrected_flag, lin_con_LineFlux_FeVII6008, lin_con_LineFlux_FeX6376, lin_con_LineFlux_FeXI7894, lin_con_LineFlux_FeXIV5304 "
-    f"FROM `{Database}`.`{Objects_TableID}`"
+    f"FROM `{Database}`.`{Objects_TableID}` "
     #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
     #f"WHERE lin_con_pEQW_Halpha is NULL"
     #f"WHERE z_SDSS_spec >= 0.2"
@@ -142,7 +148,7 @@ cursor.execute(
     #f"WHERE Nickname = 'Leafeon' AND Follow_Up_ID in (2,3)"
     #f"WHERE Standard_Inclusion = 1"
     #f"WHERE DR16_Spectroscopic_ID IN {IDs} and Standard_Inclusion = 1"
-    #f"WHERE DR16_Spectroscopic_ID = {IDs}"
+    f"WHERE DR16_Spectroscopic_ID IN {IDs}"
 )
 
 ecle_data = cursor.fetchall()
@@ -250,6 +256,7 @@ while i < len(galaxy_data):
             if galaxy_Hbeta_flux[i] > max_Fe_flux:
                 scale_factor_max = galaxy_Hbeta_flux[i]/max_Fe_flux
 
+    avg_max_scale_factor.append(scale_factor_max)
 
     scale_factor = uniform(0,scale_factor_max)
 

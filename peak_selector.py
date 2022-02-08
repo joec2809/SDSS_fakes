@@ -23,12 +23,10 @@ c = constants.value('speed of light in vacuum') / 1000
 
 smoothing_boxcar = 5
 
-scale_factors = np.around(np.arange(0.1, 1.1, 0.1), 1)
-
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
-TableID = "SDSS_Confirmed_Objects"
+TableID = "SDSS_Confirmed_Spectra"
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
 

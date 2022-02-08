@@ -1,27 +1,21 @@
 import sys
 import time
-from timeit import default_timer
 import warnings
 import math
 import os
 import Hirogen_Functions
-import mods_functions
 
 import numpy as np
-import scipy.constants as constants
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from scipy.interpolate import CubicSpline, interp1d
-from astropy import units as u
-from astropy.visualization import hist
-from datetime import datetime, date
 
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
 Galaxy_TableID = "SDSS_Galaxy_Spectra"
-Fakes_TableID = "SDSS_Fake_Spectra"
+Fakes_TableID = "SDSS_FeVII_Fake_Spectra"
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -137,6 +131,8 @@ total_sort_ind = np.argsort(total_pEQW)
 total_pEQW_sort = total_pEQW[total_sort_ind]
 scores_sort = fake_ecle_candidate[total_sort_ind]
 
+#total_bins = np.arange(-1025, 25, 50)
+
 total_info = pd.cut(total_pEQW_sort, 20, retbins=True)
 
 total_cuts = np.cumsum(total_info[0].value_counts())[:-1]
@@ -198,6 +194,7 @@ scores_for_error = np.split(galaxy_scores_sort, error_cuts)
 score_error = np.zeros(len(scores_for_error))
 
 for i, arr in enumerate(pEQW_for_error):
+    print(len(arr))
     pEQW_error[i] = np.std(arr)
     score_error[i] = np.std(scores_for_error[i])
 
@@ -207,10 +204,11 @@ fin_bin_centres = bin_centres[not_nans]
 
 cs = CubicSpline(fin_bin_centres, fin_detection_eff)
 one_d = interp1d(fin_bin_centres, fin_detection_eff)
-xs = np.arange(bin_centres[0], bin_centres[-1], 1)
+xs = np.arange(bin_centres[0], bin_centres[-1], 0.1)
 
 fig, ax = plt.subplots()
-ax.plot(xs, cs(xs))
+#ax.plot(xs, cs(xs))
+ax.plot(xs, one_d(xs))
 ax.errorbar(bin_centres, detection_efficiency, xerr = pEQW_error, yerr = score_error, fmt = 'k.', ls = 'none', capsize = 5)
 
 ax.set_xlabel(r'Equivalent Width, $\AA$')
@@ -218,6 +216,6 @@ ax.set_ylabel('Detection Efficiency')
 ax.set_ylim(0,1.1)
 ax.tick_params(top = True, right = True, direction = 'in')
 
-plt.savefig("example_detection_efficiency_plot.png")
+#plt.savefig("example_detection_efficiency_plot.png")
 
 plt.show()

@@ -190,3 +190,18 @@ def spectra_resizer(ecle_wavelengths, ecle_flux, ecle_flux_err, ecle_flags, gala
         galaxy_flags_2 = galaxy_flags_1
 
     return ecle_wavelengths_2, ecle_flux_2, ecle_flux_err_2, ecle_flags_2, galaxy_wavelengths_2, galaxy_flux_2, galaxy_flux_err_2, galaxy_flags_2
+
+def create_bins(first_point, last_point, num_bins):
+    lowest_point = np.floor(first_point/50) * 50
+    temp_highest_point = np.ceil(last_point)
+    j = 0
+    while j == 0:
+        diff = temp_highest_point - lowest_point
+        if diff % num_bins == 0:
+            j = 1
+        else:
+            temp_highest_point += 1
+
+    bins = np.linspace(lowest_point, temp_highest_point, num_bins+1)
+
+    return bins

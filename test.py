@@ -18,7 +18,4 @@ from mysql.connector import errorcode
 from astropy.convolution import convolve, Box1DKernel
 from random import uniform
 
-number = -175
-factor = 20
-
-print(mods_functions.next_lowest_multiple(number, factor))
+print(mods_functions.create_bins(-1254,5,50))

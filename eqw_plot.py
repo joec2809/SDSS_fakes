@@ -4,12 +4,14 @@ import warnings
 import math
 import os
 import Hirogen_Functions
+import mods_functions
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from scipy.interpolate import CubicSpline, interp1d
+from scipy.optimize import curve_fit
 
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
@@ -125,15 +127,20 @@ fexiv_pEQW = np.array(fake_fexiv_pEQW)
 nans = np.argwhere(fexiv_pEQW <= -999)
 fexiv_pEQW[nans] = 0
 
-total_pEQW = fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW
+
+# Non-FeVII
+#total_pEQW = (fex_pEQW + fexi_pEQW + fexiv_pEQW)/3
+
+#FeVII
+total_pEQW = (fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW)/4
 
 total_sort_ind = np.argsort(total_pEQW)
 total_pEQW_sort = total_pEQW[total_sort_ind]
 scores_sort = fake_ecle_candidate[total_sort_ind]
 
-#total_bins = np.arange(-1025, 25, 50)
+total_bins = mods_functions.create_bins(total_pEQW_sort[0], total_pEQW_sort[-1], 1000)
 
-total_info = pd.cut(total_pEQW_sort, 20, retbins=True)
+total_info = pd.cut(total_pEQW_sort, total_bins, retbins=True)
 
 total_cuts = np.cumsum(total_info[0].value_counts())[:-1]
 
@@ -152,70 +159,53 @@ for i, array in enumerate(scores_binned):
 
 detection_efficiency = total_scores/bin_sizes
 
+detection_error = (1/bin_sizes)*np.sqrt(bin_sizes*detection_efficiency*(1-detection_efficiency))
+
 bin_centres = np.zeros(len(detection_efficiency))
 for i in range(len(bin_centres)):
     bin_centres[i] = (total_bins[i] + total_bins[i+1])/2
 
 
-#Errors
-
-fevii_pEQW = np.array(galaxy_fevii_pEQW)
-nans = np.argwhere(fevii_pEQW <= -999)
-fevii_pEQW[nans] = 0
-
-fex_pEQW = np.array(galaxy_fex_pEQW)
-nans = np.argwhere(fex_pEQW <= -999)
-fex_pEQW[nans] = 0
-
-fexi_pEQW = np.array(galaxy_fexi_pEQW)
-nans = np.argwhere(fexi_pEQW <= -999)
-fexi_pEQW[nans] = 0
-
-fexiv_pEQW = np.array(galaxy_fexiv_pEQW)
-nans = np.argwhere(fexiv_pEQW <= -999)
-fexiv_pEQW[nans] = 0
-
-galaxy_pEQW = fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW
-
-galaxy_sort_ind = np.argsort(galaxy_pEQW)
-galaxy_pEQW_sort = galaxy_pEQW[galaxy_sort_ind]
-galaxy_scores_sort = galaxy_ecle_candidate[galaxy_sort_ind]
-
-bins_cut= pd.cut(galaxy_pEQW_sort, total_bins)
-
-error_cuts = np.cumsum(bins_cut.value_counts())[:-1]
-
-pEQW_for_error = np.split(galaxy_pEQW_sort, error_cuts)
-
-pEQW_error = np.zeros(len(pEQW_for_error))
-
-scores_for_error = np.split(galaxy_scores_sort, error_cuts)
-
-score_error = np.zeros(len(scores_for_error))
-
-for i, arr in enumerate(pEQW_for_error):
-    print(len(arr))
-    pEQW_error[i] = np.std(arr)
-    score_error[i] = np.std(scores_for_error[i])
+pEQW_zoom_in = np.delete(bin_centres, np.argwhere(bin_centres < -70))
+det_eff_zoom_in = np.delete(detection_efficiency, np.argwhere(bin_centres < -70))
+det_err_zoom_in = np.delete(detection_error, np.argwhere(bin_centres < -70))
 
 not_nans = ~np.isnan(detection_efficiency)
 fin_detection_eff = detection_efficiency[not_nans]
 fin_bin_centres = bin_centres[not_nans]
 
-cs = CubicSpline(fin_bin_centres, fin_detection_eff)
-one_d = interp1d(fin_bin_centres, fin_detection_eff)
-xs = np.arange(bin_centres[0], bin_centres[-1], 0.1)
+def func(x, w, s):
+    return 1/(1 + np.exp((x-w)/s))
 
-fig, ax = plt.subplots()
-#ax.plot(xs, cs(xs))
-ax.plot(xs, one_d(xs))
-ax.errorbar(bin_centres, detection_efficiency, xerr = pEQW_error, yerr = score_error, fmt = 'k.', ls = 'none', capsize = 5)
+par_1, cov_1 = curve_fit(func, fin_bin_centres[fin_detection_eff >= 0.5], fin_detection_eff[fin_detection_eff >= 0.5])
 
-ax.set_xlabel(r'Equivalent Width, $\AA$')
+print(par_1)
+
+guess = [par_1[0], par_1[1]]
+#par_2, cov_2 = curve_fit(func, fin_bin_centres[fin_detection_eff < 0.5], fin_detection_eff[fin_detection_eff < 0.5], p0 = guess)
+
+xs_1 = np.arange(-470, par_1[0], 0.1)
+xs_2 = np.arange(-100, par_1[0], 0.1)
+
+fig, ax = plt.subplots(figsize = (15,10))
+
+ax.errorbar(bin_centres, detection_efficiency, yerr = detection_error, fmt = 'k.', ls = 'none', capsize = 5)
+ax.plot(xs_1, func(xs_1, *par_1))
+ax.set_xlabel(r'Mean Equivalent Width, $\AA$')
 ax.set_ylabel('Detection Efficiency')
 ax.set_ylim(0,1.1)
+ax.set_xlim(-450, 20)
 ax.tick_params(top = True, right = True, direction = 'in')
 
-#plt.savefig("example_detection_efficiency_plot.png")
+
+left, bottom, width, height = [0.2, 0.2, 0.5, 0.5]
+axins = fig.add_axes([left, bottom, width, height])
+axins.errorbar(pEQW_zoom_in, det_eff_zoom_in, yerr = det_err_zoom_in, fmt = 'k.', ls = 'none', capsize = 5)
+axins.plot(xs_2, func(xs_2, *par_1))
+axins.tick_params(top = True, right = True, direction = 'in')
+axins.set_xlim(-80,10)
+axins.set_ylim(0,1.1)
+
+#plt.savefig("FeVII_detection_efficiency_plot.png")
 
 plt.show()

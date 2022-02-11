@@ -258,7 +258,7 @@ while i < len(galaxy_data):
 
     avg_max_scale_factor.append(scale_factor_max)
 
-    scale_factor = uniform(-scale_factor_max,scale_factor_max)
+    scale_factor = uniform(0,scale_factor_max)
 
     scaled_peak_flux = peak_flux * scale_factor
 

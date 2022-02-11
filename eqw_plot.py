@@ -17,7 +17,7 @@ User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
 Galaxy_TableID = "SDSS_Galaxy_Spectra"
-Fakes_TableID = "SDSS_FeVII_Fake_Spectra"
+Fakes_TableID = "SDSS_Non_FeVII_Fake_Spectra"
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -129,22 +129,22 @@ fexiv_pEQW[nans] = 0
 
 
 # Non-FeVII
-#total_pEQW = (fex_pEQW + fexi_pEQW + fexiv_pEQW)/3
+total_pEQW = (fex_pEQW + fexi_pEQW + fexiv_pEQW)/3
 
 #FeVII
-total_pEQW = (fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW)/4
+#total_pEQW = (fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW)/4
 
 total_sort_ind = np.argsort(total_pEQW)
 total_pEQW_sort = total_pEQW[total_sort_ind]
 scores_sort = fake_ecle_candidate[total_sort_ind]
 
-total_bins = mods_functions.create_bins(total_pEQW_sort[0], total_pEQW_sort[-1], 1000)
+# Main Plot
 
-total_info = pd.cut(total_pEQW_sort, total_bins, retbins=True)
+total_bins = mods_functions.create_bins(total_pEQW_sort[0], total_pEQW_sort[-1], 5)
 
-total_cuts = np.cumsum(total_info[0].value_counts())[:-1]
+total_info = pd.cut(total_pEQW_sort, total_bins)
 
-total_bins = total_info[1]
+total_cuts = np.cumsum(total_info.value_counts())[:-1]
 
 scores_binned = np.split(scores_sort, total_cuts)
 
@@ -157,53 +157,86 @@ bin_sizes = np.zeros(len(scores_binned))
 for i, array in enumerate(scores_binned):
     bin_sizes[i] = len(array)
 
-detection_efficiency = total_scores/bin_sizes
+det_eff = total_scores/bin_sizes
 
-detection_error = (1/bin_sizes)*np.sqrt(bin_sizes*detection_efficiency*(1-detection_efficiency))
+det_err = (1/bin_sizes)*np.sqrt(bin_sizes*det_eff*(1-det_eff))
 
-bin_centres = np.zeros(len(detection_efficiency))
+bin_centres = np.zeros(len(det_eff))
 for i in range(len(bin_centres)):
     bin_centres[i] = (total_bins[i] + total_bins[i+1])/2
 
-
-pEQW_zoom_in = np.delete(bin_centres, np.argwhere(bin_centres < -70))
-det_eff_zoom_in = np.delete(detection_efficiency, np.argwhere(bin_centres < -70))
-det_err_zoom_in = np.delete(detection_error, np.argwhere(bin_centres < -70))
-
-not_nans = ~np.isnan(detection_efficiency)
-fin_detection_eff = detection_efficiency[not_nans]
+not_nans = ~np.isnan(det_eff)
+fin_det_eff = det_eff[not_nans]
 fin_bin_centres = bin_centres[not_nans]
+
+# Inset
+
+zoom_bins = mods_functions.create_bins(total_pEQW_sort[mods_functions.find_nearest(total_pEQW_sort, -60)], total_pEQW_sort[-1], 2)
+
+zoom_info = pd.cut(total_pEQW_sort, zoom_bins)
+
+zoom_cuts = np.cumsum(zoom_info.value_counts())[:-1]
+
+zoom_scores_binned = np.split(scores_sort, zoom_cuts)
+
+zoom_scores = np.zeros(len(zoom_scores_binned))
+
+for i, array in enumerate(zoom_scores_binned):
+    zoom_scores[i] = sum(array)
+
+zoom_bin_sizes = np.zeros(len(zoom_scores_binned))
+for i, array in enumerate(zoom_scores_binned):
+    zoom_bin_sizes[i] = len(array)
+
+zoom_det_eff = zoom_scores/zoom_bin_sizes
+
+zoom_det_err = (1/zoom_bin_sizes)*np.sqrt(zoom_bin_sizes*zoom_det_eff*(1-zoom_det_eff))
+
+zoom_bin_centres = np.zeros(len(zoom_det_eff))
+for i in range(len(zoom_bin_centres)):
+    zoom_bin_centres[i] = (zoom_bins[i] + zoom_bins[i+1])/2
+
+zoom_not_nans = ~np.isnan(zoom_det_eff)
+zoom_fin_det_eff = zoom_det_eff[zoom_not_nans]
+zoom_fin_bin_centres = zoom_bin_centres[zoom_not_nans]
+
+# Curves
 
 def func(x, w, s):
     return 1/(1 + np.exp((x-w)/s))
 
-par_1, cov_1 = curve_fit(func, fin_bin_centres[fin_detection_eff >= 0.5], fin_detection_eff[fin_detection_eff >= 0.5])
+par, cov = curve_fit(func, fin_bin_centres[fin_det_eff >= 0.5], fin_det_eff[fin_det_eff >= 0.5])
 
-print(par_1)
+zoom_par, zoom_cov = curve_fit(func, zoom_fin_bin_centres[zoom_fin_det_eff < 0.5], zoom_fin_det_eff[zoom_fin_det_eff < 0.5])
 
-guess = [par_1[0], par_1[1]]
-#par_2, cov_2 = curve_fit(func, fin_bin_centres[fin_detection_eff < 0.5], fin_detection_eff[fin_detection_eff < 0.5], p0 = guess)
+w_half = (par[0]+zoom_par[0])/2
 
-xs_1 = np.arange(-470, par_1[0], 0.1)
-xs_2 = np.arange(-100, par_1[0], 0.1)
+xs_1 = np.arange(-470, w_half, 0.1)
+xs_1_ins = np.arange(-100, w_half, 0.1)
+xs_2 = np.arange(w_half, 100, 0.1)
+xs_2_ins = np.arange(w_half, 20, 0.1)
+
+# Plotting
 
 fig, ax = plt.subplots(figsize = (15,10))
 
-ax.errorbar(bin_centres, detection_efficiency, yerr = detection_error, fmt = 'k.', ls = 'none', capsize = 5)
-ax.plot(xs_1, func(xs_1, *par_1))
+ax.errorbar(bin_centres, det_eff, yerr = det_err, fmt = 'k.', ls = 'none', capsize = 5)
+ax.plot(xs_1, func(xs_1, w_half, par[1]), 'k')
+ax.plot(xs_2, func(xs_2, w_half, zoom_par[1]), 'k')
 ax.set_xlabel(r'Mean Equivalent Width, $\AA$')
 ax.set_ylabel('Detection Efficiency')
 ax.set_ylim(0,1.1)
-ax.set_xlim(-450, 20)
+ax.set_xlim(mods_functions.round_down(bin_centres[0], 50), 50)
 ax.tick_params(top = True, right = True, direction = 'in')
 
 
 left, bottom, width, height = [0.2, 0.2, 0.5, 0.5]
 axins = fig.add_axes([left, bottom, width, height])
-axins.errorbar(pEQW_zoom_in, det_eff_zoom_in, yerr = det_err_zoom_in, fmt = 'k.', ls = 'none', capsize = 5)
-axins.plot(xs_2, func(xs_2, *par_1))
+axins.errorbar(zoom_bin_centres, zoom_det_eff, yerr = zoom_det_err, fmt = 'k.', ls = 'none', capsize = 5)
+axins.plot(xs_1_ins, func(xs_1_ins, w_half, par[1]), 'k')
+axins.plot(xs_2_ins, func(xs_2_ins, w_half, zoom_par[1]), 'k')
 axins.tick_params(top = True, right = True, direction = 'in')
-axins.set_xlim(-80,10)
+axins.set_xlim(mods_functions.round_down(zoom_bin_centres[0], 10), 10)
 axins.set_ylim(0,1.1)
 
 #plt.savefig("FeVII_detection_efficiency_plot.png")

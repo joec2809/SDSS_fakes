@@ -18,4 +18,4 @@ from mysql.connector import errorcode
 from astropy.convolution import convolve, Box1DKernel
 from random import uniform
 
-print(mods_functions.create_bins(-1254,5,50))
+print(mods_functions.create_bins(-268,0.9,100))

@@ -140,7 +140,9 @@ scores_sort = fake_ecle_candidate[total_sort_ind]
 
 # Main Plot
 
-total_bins = mods_functions.create_bins(total_pEQW_sort[0], total_pEQW_sort[-1], 5)
+bin_width = 5
+
+total_bins = mods_functions.create_bins(total_pEQW_sort[0], total_pEQW_sort[-1], bin_width)
 
 total_info = pd.cut(total_pEQW_sort, total_bins)
 
@@ -157,9 +159,23 @@ bin_sizes = np.zeros(len(scores_binned))
 for i, array in enumerate(scores_binned):
     bin_sizes[i] = len(array)
 
-det_eff = total_scores/bin_sizes
+det_eff = (total_scores)/(bin_sizes)
 
-det_err = (1/bin_sizes)*np.sqrt(bin_sizes*det_eff*(1-det_eff))
+det_error = np.sqrt(((total_scores+1)*(total_scores+2))/((bin_sizes+2)*(bin_sizes+3)) - ((total_scores+1)**2)/((bin_sizes+2)**2))
+
+det_err = np.zeros((2, len(det_error)))
+
+for i, error in enumerate(det_error):
+    det_err[0][i] = error
+    det_err[1][i] = error
+
+    if det_eff[i] - det_err[0][i] < 0:
+        det_err[0][i] = det_eff[i]
+
+    if det_eff[i] + det_err[1][i] > 1:
+        det_err[1][i] = 1 - det_eff[i]
+
+pEQW_err = np.sqrt(bin_width)
 
 bin_centres = np.zeros(len(det_eff))
 for i in range(len(bin_centres)):
@@ -171,7 +187,9 @@ fin_bin_centres = bin_centres[not_nans]
 
 # Inset
 
-zoom_bins = mods_functions.create_bins(total_pEQW_sort[mods_functions.find_nearest(total_pEQW_sort, -60)], total_pEQW_sort[-1], 2)
+zoom_bin_width = 2
+
+zoom_bins = mods_functions.create_bins(total_pEQW_sort[mods_functions.find_nearest(total_pEQW_sort, -60)], total_pEQW_sort[-1], zoom_bin_width)
 
 zoom_info = pd.cut(total_pEQW_sort, zoom_bins)
 
@@ -190,7 +208,21 @@ for i, array in enumerate(zoom_scores_binned):
 
 zoom_det_eff = zoom_scores/zoom_bin_sizes
 
-zoom_det_err = (1/zoom_bin_sizes)*np.sqrt(zoom_bin_sizes*zoom_det_eff*(1-zoom_det_eff))
+zoom_det_error = np.sqrt(((zoom_scores+1)*(zoom_scores+2))/((zoom_bin_sizes+2)*(zoom_bin_sizes+3)) - ((zoom_scores+1)**2)/((zoom_bin_sizes+2)**2))
+
+zoom_det_err = np.zeros((2, len(zoom_det_error)))
+
+for i, error in enumerate(zoom_det_error):
+    zoom_det_err[0][i] = error
+    zoom_det_err[1][i] = error
+
+    if zoom_det_eff[i] - zoom_det_err[0][i] < 0:
+        zoom_det_err[0][i] = zoom_det_eff[i]
+
+    if zoom_det_eff[i] + zoom_det_err[1][i] > 1:
+        zoom_det_err[1][i] = 1 - zoom_det_eff[i]
+
+zoom_pEQW_err = np.sqrt(zoom_bin_width)
 
 zoom_bin_centres = np.zeros(len(zoom_det_eff))
 for i in range(len(zoom_bin_centres)):
@@ -205,24 +237,27 @@ zoom_fin_bin_centres = zoom_bin_centres[zoom_not_nans]
 def func(x, w, s):
     return 1/(1 + np.exp((x-w)/s))
 
-par, cov = curve_fit(func, fin_bin_centres[fin_det_eff >= 0.5], fin_det_eff[fin_det_eff >= 0.5])
+par_1, cov_1 = curve_fit(func, fin_bin_centres[fin_det_eff >= 0.5], fin_det_eff[fin_det_eff >= 0.5])
+par_2, cov_2 = curve_fit(func, fin_bin_centres[fin_det_eff < 0.5], fin_det_eff[fin_det_eff < 0.5])
 
-zoom_par, zoom_cov = curve_fit(func, zoom_fin_bin_centres[zoom_fin_det_eff < 0.5], zoom_fin_det_eff[zoom_fin_det_eff < 0.5])
+zoom_par_1, zoom_cov_1 = curve_fit(func, zoom_fin_bin_centres[zoom_fin_det_eff >= 0.5], zoom_fin_det_eff[zoom_fin_det_eff >= 0.5])
+zoom_par_2, zoom_cov_2 = curve_fit(func, zoom_fin_bin_centres[zoom_fin_det_eff < 0.5], zoom_fin_det_eff[zoom_fin_det_eff < 0.5])
 
-w_half = (par[0]+zoom_par[0])/2
+w_half = (par_1[0]+par_2[0])/2
+zoom_w_half = (zoom_par_1[0]+zoom_par_2[0])/2
 
 xs_1 = np.arange(-470, w_half, 0.1)
-xs_1_ins = np.arange(-100, w_half, 0.1)
 xs_2 = np.arange(w_half, 100, 0.1)
-xs_2_ins = np.arange(w_half, 20, 0.1)
+zoom_xs_1 = np.arange(-70, zoom_w_half, 0.1)
+zoom_xs_2 = np.arange(zoom_w_half, 20, 0.1)
 
 # Plotting
 
 fig, ax = plt.subplots(figsize = (15,10))
 
-ax.errorbar(bin_centres, det_eff, yerr = det_err, fmt = 'k.', ls = 'none', capsize = 5)
-ax.plot(xs_1, func(xs_1, w_half, par[1]), 'k')
-ax.plot(xs_2, func(xs_2, w_half, zoom_par[1]), 'k')
+ax.errorbar(bin_centres, det_eff, xerr = pEQW_err, yerr = det_err, fmt = 'k.', ls = 'none', capsize = 5)
+ax.plot(xs_1, func(xs_1, w_half, par_1[1]), 'k')
+ax.plot(xs_2, func(xs_2, w_half, par_2[1]), 'k')
 ax.set_xlabel(r'Mean Equivalent Width, $\AA$')
 ax.set_ylabel('Detection Efficiency')
 ax.set_ylim(0,1.1)
@@ -230,11 +265,11 @@ ax.set_xlim(mods_functions.round_down(bin_centres[0], 50), 50)
 ax.tick_params(top = True, right = True, direction = 'in')
 
 
-left, bottom, width, height = [0.2, 0.2, 0.5, 0.5]
+left, bottom, width, height = [0.2, 0.2, 0.5, 0.4]
 axins = fig.add_axes([left, bottom, width, height])
-axins.errorbar(zoom_bin_centres, zoom_det_eff, yerr = zoom_det_err, fmt = 'k.', ls = 'none', capsize = 5)
-axins.plot(xs_1_ins, func(xs_1_ins, w_half, par[1]), 'k')
-axins.plot(xs_2_ins, func(xs_2_ins, w_half, zoom_par[1]), 'k')
+axins.errorbar(zoom_bin_centres, zoom_det_eff, xerr = zoom_pEQW_err, yerr = zoom_det_err, fmt = 'k.', ls = 'none', capsize = 5)
+axins.plot(zoom_xs_1, func(zoom_xs_1, zoom_w_half, zoom_par_1[1]), 'k')
+axins.plot(zoom_xs_2, func(zoom_xs_2, zoom_w_half, zoom_par_2[1]), 'k')
 axins.tick_params(top = True, right = True, direction = 'in')
 axins.set_xlim(mods_functions.round_down(zoom_bin_centres[0], 10), 10)
 axins.set_ylim(0,1.1)

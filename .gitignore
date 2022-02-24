@@ -132,6 +132,7 @@ dmypy.json
 *.fits
 *.csv
 *.txt
+*.dat
 
 # Bash Scripts
 *.sh

@@ -8,7 +8,7 @@ scientific = {
 
     # Axes
     'axes.linewidth': 1.5,
-    'axes.titlesize': 'x-large',
+    'axes.titlesize': 'large',
     'axes.labelsize': 'large',
     'axes.spines.top': True,
     'axes.spines.right': True,
@@ -22,7 +22,7 @@ scientific = {
     'xtick.minor.pad': 6,
     'xtick.labelsize': 'medium',
     'xtick.direction': 'in',
-    'xtick.top': False,
+    'xtick.top': True,
 
     'ytick.major.size': 6,
     'ytick.minor.size': 4,
@@ -32,7 +32,7 @@ scientific = {
     'ytick.minor.pad': 6,
     'ytick.labelsize': 'medium',
     'ytick.direction': 'in',
-    'ytick.right': False,
+    'ytick.right': True,
 
     # Legend
     'legend.fancybox': True,
@@ -41,7 +41,6 @@ scientific = {
     'legend.loc': 'best',
 
     # Figure
-    'figure.figsize': [8, 6],
     'figure.titlesize': 'large',
 
     # Images

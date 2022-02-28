@@ -38,7 +38,7 @@ if plot == "FeVII":
 elif plot == "Non FeVII":
     Fakes_TableID = "SDSS_Non_FeVII_Fake_Spectra"
 else:
-    print("Plot not set correctly")
+    print("Table not set correctly")
     sys.exit()
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
@@ -48,7 +48,7 @@ cursor = Data.cursor()
 
 cursor.execute(
     f"SELECT DR16_Spectroscopic_ID, lin_con_pEQW_FeVII6008, lin_con_pEQW_FeX6376, lin_con_pEQW_FeXI7894, lin_con_pEQW_FeXIV5304, "
-    f"Strong_FeVII_Flag, Strong_FeX_Flag, Strong_FeXI_Flag, Strong_FeXIV_Flag, ECLE_Candidate_Score, lin_con_LineFlux_Halpha, z_SDSS_spec "
+    f"Strong_FeVII_Flag, Strong_FeX_Flag, Strong_FeXI_Flag, Strong_FeXIV_Flag, ECLE_Candidate_Score "
     f"FROM `{Database}`.`{Fakes_TableID}`"
     #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
     #f"WHERE lin_con_pEQW_Halpha is NULL"
@@ -75,8 +75,6 @@ if len(Candidate_Data) >= 1:
     fexi_flag = [item[7] for item in Candidate_Data]
     fexiv_flag = [item[8] for item in Candidate_Data]
     ecle_candidate_score = [item[9] for item in Candidate_Data]
-    halpha_flux = [item[10] for item in Candidate_Data]
-    redshift = [item[11] for item in Candidate_Data]
         
 
 else:

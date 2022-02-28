@@ -3,9 +3,7 @@ import time
 import warnings
 import math
 import os
-from xml.dom.expatbuilder import CDATA_SECTION_NODE
 
-from click import Path
 import Hirogen_Functions
 import mods_functions
 
@@ -16,8 +14,6 @@ import scipy.constants as constants
 
 from astropy.cosmology import Planck18
 from astropy import units as u
-from scipy.interpolate import CubicSpline, interp1d
-from scipy.optimize import curve_fit
 
 import mpl_style
 plt.style.use(mpl_style.scientific)
@@ -38,7 +34,7 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-table = "FeVII"
+table = "Non FeVII"
 
 if table == "FeVII":
     Fakes_TableID = "SDSS_FeVII_Fake_Spectra"
@@ -54,7 +50,7 @@ print("\n")
 cursor = Data.cursor()
 
 cursor.execute(
-    f"SELECT DR16_Spectroscopic_ID, z_SDSS_spec " 
+    f"SELECT DR16_Spectroscopic_ID, z_SDSS_spec, lin_con_LineFlux_Halpha " 
     f"FROM `{Database}`.`{Fakes_TableID}`"
     #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
     #f"WHERE lin_con_pEQW_Halpha is NULL"
@@ -73,19 +69,35 @@ if len(Candidate_Data) >= 1:
 
     Object_Name_List = [item[0] for item in Candidate_Data]
     redshift = [item[1] for item in Candidate_Data]
+    h_alpha_flux = [item[2] for item in Candidate_Data] 
 
 redshift = np.array(redshift)
+h_alpha_flux = np.array(h_alpha_flux)
 
-lum_dist = (((redshift*c)/H0_diff)*(1 + (redshift/2)*(1-q0))*100).value
+non_nan_redshift = redshift[h_alpha_flux > -0]
+non_nan_h_alpha_flux = h_alpha_flux[h_alpha_flux > -0] * 10**-17
+
+print(min(non_nan_h_alpha_flux*10**17))
+
+non_nan_lum_dist = (((non_nan_redshift*c)/H0_diff)*(1 + (non_nan_redshift/2)*(1-q0))*100).value
+
+luminosity = Hirogen_Functions.flux_to_luminosity(non_nan_h_alpha_flux, non_nan_lum_dist)
+
+sfr = 4.6*10**-42 * luminosity
+
+print(max(sfr), min(sfr))
 
 if table == "FeVII":
     h_alpha_flux = np.loadtxt("Non_FeVII_H_alpha_flux.dat")*6563*10**-17
 elif table == "Non FeVII":
     h_alpha_flux = np.loadtxt("FeVII_H_alpha_flux.dat")*6563*10**-17
 
+print(min(h_alpha_flux*10**17))
+
+lum_dist = (((redshift*c)/H0_diff)*(1 + (redshift/2)*(1-q0))*100).value
 
 luminosity = Hirogen_Functions.flux_to_luminosity(h_alpha_flux, lum_dist)
 
 sfr = 4.6*10**-42 * luminosity
 
-print(min(sfr))
+print(max(sfr), min(sfr))

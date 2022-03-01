@@ -23,7 +23,7 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-TableID = "SDSS_Galaxy_Spectra"
+TableID = "SDSS_Fake_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
 
@@ -67,24 +67,22 @@ psb = 0
 mod_bal = 0
 others = 0
 
-psb_idxs = []
-mod_bal_idxs = []
-others_idxs = []
+star_forming_EW = non_nan_EW[non_nan_EW >= 3]
+star_forming_lick = non_nan_lick[non_nan_EW >= 3]
+
+quiscent_EW = non_nan_EW[non_nan_EW < 3]
+quiscent_lick = non_nan_lick[non_nan_EW < 3]
 
 for i, object in enumerate(non_nan_EW):
     if non_nan_EW[i] < 3:
         if non_nan_lick[i] - non_nan_lick_err[i] > 4:
             psb += 1
-            psb_idxs.append(i)
         elif non_nan_lick[i] - non_nan_lick_err[i] > 1.31:
             mod_bal += 1
-            mod_bal_idxs.append(i)
         else:
             others += 1
-            others_idxs.append(i)
     else:
         others +=1
-        others_idxs.append(i)
 
 psb_percent = psb/len(non_nan_EW)*100
 mod_bal_percent = mod_bal/len(non_nan_EW)*100
@@ -94,20 +92,22 @@ print(f"{psb_percent}% of the sample are post-starburst")
 print(f"{mod_bal_percent}% of the sample are moderately balmer strong")
 print(f"{others_percent}% of the sample are other types")
 
-psb_EW = non_nan_EW[psb_idxs]
-psb_lick = non_nan_lick[psb_idxs]
 
-mod_bal_EW = non_nan_EW[mod_bal_idxs]
-mod_bal_lick = non_nan_lick[mod_bal_idxs]
+fig, (ax1, ax2) = plt.subplots(2,1, sharex = True)
 
-others_EW = non_nan_EW[others_idxs]
-others_lick = non_nan_lick[others_idxs]
+ax1.scatter(star_forming_lick, star_forming_EW, color = 'b', marker = '.')
+ax1.set_ylim(5, 100)
 
 
-fig, ax = plt.subplots()
-ax.scatter(non_nan_lick, non_nan_EW)
-ax.vlines(1.31, -10, 3, 'k')
-ax.vlines(4, -5, 3, 'k', 'dashed')
-ax.hlines(3, 1.31, 12, 'k')
+ax2.scatter(star_forming_lick, star_forming_EW, color = 'b', marker = '.')
+ax2.scatter(quiscent_lick, quiscent_EW, color = 'r', marker = '.')
+ax2.vlines(1.31, -10, 3, 'k')
+ax2.vlines(4, -5, 3, 'k', 'dashed')
+ax2.hlines(3, 1.31, 12, 'k')
+
+ax2.set_xlim(-6,10)
+ax2.set_ylim(-2.5,4)
+
+
 
 plt.show()

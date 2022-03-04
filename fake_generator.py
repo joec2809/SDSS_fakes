@@ -17,9 +17,6 @@ from astropy.convolution import convolve, Box1DKernel
 from random import uniform
 from statistics import mean
 
-# This code takes the 7 confirmed ECLE objects, produces 9 scaled copies of each and saves them as fits files
-# It also adds the corresponding info to an SQL table that contains other galaxy spectra
-
 np.set_printoptions(threshold=sys.maxsize)
 c = constants.value('speed of light in vacuum') / 1000
 
@@ -29,7 +26,12 @@ User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
 Objects_TableID = "SDSS_Confirmed_Spectra"
-Spectra_TableID = 'SDSS_FeVII_Fake_Spectra'
+
+mode = "Non FeVII"
+if mode == "FeVII":
+    Spectra_TableID = 'SDSS_FeVII_Fake_Spectra'
+elif mode == "Non FeVII":
+    Spectra_TableID = 'SDSS_Non_FeVII_Fake_Spectra'
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
 
@@ -129,11 +131,15 @@ galaxy_FilePaths = Hirogen_Functions.sdss_spectra_file_path_generator(
     galaxy_Path_Override_Flag_List, galaxy_Path_Override_List
 )
 
-# FeVII IDs
-IDs = (2583945021774391296, 1544754514769242112)
+# All IDs
+IDs = (2583945021774391296, 1544754514769242112, 961619990203623424, 1955789619387721728, 2380274238536837120)
 
-# Non-FeVII IDs
-#IDs = (961619990203623424, 1955789619387721728, 2380274238536837120)
+
+if mode == "FeVII":
+    IDs = (2583945021774391296, 1544754514769242112)
+elif mode == "Non FeVII":
+    IDs = (961619990203623424, 1955789619387721728, 2380274238536837120)
+
 
 cursor.execute(
     f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
@@ -258,7 +264,7 @@ while i < len(galaxy_data):
 
     avg_max_scale_factor.append(scale_factor_max)
 
-    scale_factor = uniform(0,scale_factor_max)
+    scale_factor = uniform(-0.5, scale_factor_max)
 
     scaled_peak_flux = peak_flux * scale_factor
 
@@ -278,16 +284,6 @@ while i < len(galaxy_data):
                                                                                                                             galaxy_lamb_rest, galaxy_flux_with_continua,
                                                                                                                             galaxy_flux_err, galaxy_flags)
 
-    """if len(peak_flux) > len(galaxy_flux):
-        new_peak_flux = np.delete(peak_flux, -1)
-        new_galaxy_flux = galaxy_flux
-        new_peak_flux_err = np.delete(peak_flux_err, -1)
-        new_galaxy_flux_err = galaxy_flux_err
-    elif len(galaxy_flux) > len(peak_flux):
-        new_galaxy_flux = np.delete(galaxy_flux, -1)
-        new_peak_flux = peak_flux
-        new_galaxy_flux_err = np.delete(galaxy_flux_err, -1)
-        new_peak_flux_err = peak_flux_err"""
 
     if len(peak_flux) != len(galaxy_flux):
         print("Redo")

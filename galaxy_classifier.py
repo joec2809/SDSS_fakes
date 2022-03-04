@@ -23,7 +23,7 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-TableID = "SDSS_Fake_Spectra"
+TableID = "SDSS_FeVII_Fake_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
 
@@ -65,7 +65,8 @@ non_nan_lick_err = h_delta_lick_err[non_nans]
 
 psb = 0
 mod_bal = 0
-others = 0
+quiscent = 0
+sf = 0
 
 star_forming_EW = non_nan_EW[non_nan_EW >= 3]
 star_forming_lick = non_nan_lick[non_nan_EW >= 3]
@@ -80,17 +81,19 @@ for i, object in enumerate(non_nan_EW):
         elif non_nan_lick[i] - non_nan_lick_err[i] > 1.31:
             mod_bal += 1
         else:
-            others += 1
+            quiscent += 1
     else:
-        others +=1
+        sf +=1
 
 psb_percent = psb/len(non_nan_EW)*100
 mod_bal_percent = mod_bal/len(non_nan_EW)*100
-others_percent = (others/len(non_nan_EW))*100
+quiscent_percent = (quiscent/len(non_nan_EW))*100
+sf_percent = (sf/len(non_nan_EW))*100
 
-print(f"{psb_percent}% of the sample are post-starburst")
-print(f"{mod_bal_percent}% of the sample are moderately balmer strong")
-print(f"{others_percent}% of the sample are other types")
+print(f"{psb_percent}% of the sample are post-starburst, that's {psb} galaxies")
+print(f"{mod_bal_percent}% of the sample are moderately balmer strong, that's {mod_bal} galaxies")
+print(f"{quiscent_percent}% of the sample are other quiscent, that's {quiscent} galaxies")#
+print(f"{sf_percent}% of the sample are star forming, that's {sf} galaxies")
 
 
 fig, (ax1, ax2) = plt.subplots(2,1, sharex = True)

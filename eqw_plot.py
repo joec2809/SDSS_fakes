@@ -31,7 +31,7 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-plot = "Non FeVII"
+plot = "FeVII"
 
 if plot == "FeVII":
     Fakes_TableID = "SDSS_FeVII_Fake_Spectra"
@@ -156,15 +156,11 @@ bin_centres = np.zeros(len(det_eff))
 for i in range(len(bin_centres)):
     bin_centres[i] = (total_bins[i] + total_bins[i+1])/2
 
-not_nans = ~np.isnan(det_eff)
-fin_det_eff = det_eff[not_nans]
-fin_bin_centres = bin_centres[not_nans]
-
 # Inset
 
 zoom_bin_width = 1
 
-zoom_bins = mods_functions.create_bins(total_pEQW_sort[mods_functions.find_nearest(total_pEQW_sort, -50)], total_pEQW_sort[-1], zoom_bin_width)
+zoom_bins = mods_functions.create_bins(total_pEQW_sort[0], total_pEQW_sort[-1], zoom_bin_width)
 
 zoom_info = pd.cut(total_pEQW_sort, zoom_bins)
 
@@ -205,6 +201,7 @@ for i in range(len(zoom_bin_centres)):
 
 zoom_not_nans = ~np.isnan(zoom_det_eff)
 zoom_fin_det_eff = zoom_det_eff[zoom_not_nans]
+zoom_fin_det_err = zoom_det_error[zoom_not_nans]
 zoom_fin_bin_centres = zoom_bin_centres[zoom_not_nans]
 
 # Curves
@@ -212,8 +209,15 @@ zoom_fin_bin_centres = zoom_bin_centres[zoom_not_nans]
 def func(x, w, s):
     return 1/(1 + np.exp((x-w)/s))
 
-zoom_par_1, zoom_cov_1 = curve_fit(func, zoom_fin_bin_centres[zoom_fin_det_eff >= 0.5], zoom_fin_det_eff[zoom_fin_det_eff >= 0.5])
+def richards_curve(x, A, K, B, v, Q):
+    return A+((K-A)/((1+Q*np.exp(B*x))**(1/v)))
+
+zoom_par_1, zoom_cov_1 = curve_fit(func, zoom_fin_bin_centres[(zoom_fin_det_eff >= 0.5) & (zoom_fin_bin_centres < 0)], zoom_fin_det_eff[(zoom_fin_det_eff >= 0.5) & (zoom_fin_bin_centres < 0)])
 zoom_par_2, zoom_cov_2 = curve_fit(func, zoom_fin_bin_centres[zoom_fin_det_eff < 0.5], zoom_fin_det_eff[zoom_fin_det_eff < 0.5])
+
+zoom_par_sig, zoom_cov_sig = curve_fit(func, zoom_fin_bin_centres, zoom_fin_det_eff)
+
+zoom_par_rich, zoom_cov_rich = curve_fit(richards_curve, zoom_fin_bin_centres, zoom_fin_det_eff, sigma = zoom_fin_det_err)
 
 zoom_w_half = (zoom_par_1[0]+zoom_par_2[0])/2
 
@@ -222,14 +226,19 @@ xs_2 = np.arange(zoom_w_half, 50, 0.1)
 zoom_xs_1 = np.arange(-50, zoom_w_half, 0.1)
 zoom_xs_2 = np.arange(zoom_w_half, 10, 0.1)
 
+xs = np.arange(-400, 50, 0.1)
+zoom_xs =np.arange(-50, 10, 0.1)
+
 # Plotting
 
 fig, ax = plt.subplots(figsize = (20,10))
 
 ax.errorbar(bin_centres, det_eff, xerr = pEQW_err, yerr = det_err, fmt = 'k.', ls = 'none', capsize = 5)
 
-ax.plot(xs_1, func(xs_1, zoom_w_half, zoom_par_1[1]), 'k')
+"""ax.plot(xs_1, func(xs_1, zoom_w_half, zoom_par_1[1]), 'k')
 ax.plot(xs_2, func(xs_2, zoom_w_half, zoom_par_2[1]), 'k')
+ax.plot(xs, func(xs, zoom_par_sig[0], zoom_par_sig[1]), 'r')"""
+ax.plot(xs, richards_curve(xs, zoom_par_rich[0], zoom_par_rich[1], zoom_par_rich[2], zoom_par_rich[3], zoom_par_rich[4]), 'k')
 
 if plot == "FeVII":
     ax.set_title('Detection efficiency for fakes generated using spectra with FeVII lines')
@@ -238,19 +247,24 @@ elif plot == "Non FeVII":
 ax.set_xlabel(r'Average Equivalent Width of Coronal Lines, $\AA$')
 ax.set_ylabel('Detection Efficiency')
 ax.set_ylim(0,1.1)
-ax.set_xlim(-400, 50)
+ax.set_xlim(-200, 50)
 
 
 left, bottom, width, height = [0.2, 0.2, 0.5, 0.4]
 axins = fig.add_axes([left, bottom, width, height])
+
 axins.errorbar(zoom_bin_centres, zoom_det_eff, xerr = zoom_pEQW_err, yerr = zoom_det_err, fmt = 'k.', ls = 'none', capsize = 5)
-axins.plot(zoom_xs_1, func(zoom_xs_1, zoom_w_half, zoom_par_1[1]), 'k')
+
+"""axins.plot(zoom_xs_1, func(zoom_xs_1, zoom_w_half, zoom_par_1[1]), 'k')
 axins.plot(zoom_xs_2, func(zoom_xs_2, zoom_w_half, zoom_par_2[1]), 'k')
-axins.set_xlim(-50, 10)
+axins.plot(zoom_xs, func(zoom_xs, zoom_par_sig[0], zoom_par_sig[1]), 'r')"""
+axins.plot(zoom_xs, richards_curve(zoom_xs, zoom_par_rich[0], zoom_par_rich[1], zoom_par_rich[2], zoom_par_rich[3], zoom_par_rich[4]), 'k')
+
+axins.set_xlim(-30, 10)
 axins.set_ylim(0,1.1)
 
 if plot == "FeVII":
-    plt.savefig("FeVII_detection_efficiency_plot.png")
+    plt.savefig("FeVII_detection_efficiency_plot_TDE_dist.png")
 elif plot == "Non FeVII":
     plt.savefig("Non_FeVII_detection_efficiency_plot.png")
 

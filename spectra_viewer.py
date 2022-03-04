@@ -51,9 +51,9 @@ if len(ID_Data) >= 1:
 
 rand_idx = np.random.randint(0,len(ID_List))
 
-#IDs = (ID_List[rand_idx])
+IDs = (ID_List[rand_idx])
 
-IDs = (2345297391063689216)
+#IDs = (494429519780800512)
 
 print("\n")
 cursor = Data.cursor()
@@ -117,7 +117,7 @@ fig, ax = plt.subplots()
 
 ax.plot(wave, flux, 'r')
 
-#ax.plot(fake_wave, fake_flux, 'k')
+ax.plot(fake_wave, fake_flux, 'k')
 
 
 plt.show()

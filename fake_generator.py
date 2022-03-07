@@ -1,3 +1,4 @@
+from re import T
 import Hirogen_Functions
 import mods_functions
 
@@ -27,11 +28,19 @@ User_Config = Hirogen_Functions.user_config(user=User)
 
 Objects_TableID = "SDSS_Confirmed_Spectra"
 
+TDE_type_dist = False
 mode = "Non FeVII"
-if mode == "FeVII":
-    Spectra_TableID = 'SDSS_FeVII_Fake_Spectra'
-elif mode == "Non FeVII":
-    Spectra_TableID = 'SDSS_Non_FeVII_Fake_Spectra'
+
+if TDE_type_dist:
+    if mode == "FeVII":
+        Spectra_TableID = 'SDSS_TDE_Dist_FeVII_Fake_Spectra'
+    elif mode == "Non FeVII":
+        Spectra_TableID = 'SDSS_TDE_Dist_Non_FeVII_Fake_Spectra'
+else:
+    if mode == "FeVII":
+        Spectra_TableID = 'SDSS_FeVII_Fake_Spectra'
+    elif mode == "Non FeVII":
+        Spectra_TableID = 'SDSS_Non_FeVII_Fake_Spectra'
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
 
@@ -304,3 +313,5 @@ while i < len(galaxy_data):
 
     i += 1
     print(i)
+
+print(mode, TDE_type_dist)

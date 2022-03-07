@@ -23,7 +23,8 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-TableID = "SDSS_FeVII_Fake_Spectra"
+TableID = "SDSS_TDE_Dist_FeVII_Fake_Spectra"
+ecle_TableID = "SDSS_Confirmed_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
 
@@ -96,14 +97,46 @@ print(f"{quiscent_percent}% of the sample are other quiscent, that's {quiscent} 
 print(f"{sf_percent}% of the sample are star forming, that's {sf} galaxies")
 
 
+print("\n")
+cursor = Data.cursor()
+
+cursor.execute(
+    f"SELECT DR16_Spectroscopic_ID, lin_con_pEQW_Halpha, Lick_HDelta_Index, Lick_HDelta_Index_Err " 
+    f"FROM `{Database}`.`{ecle_TableID}`"
+    #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
+    #f"WHERE lin_con_pEQW_Halpha is NULL"
+    #f"WHERE z_SDSS_spec >= 0.2"
+    #f"WHERE Follow_Up_ID = 0"
+    #f"WHERE Follow_Up_ID in (1,2,3)"
+    #f"WHERE Nickname = 'Leafeon' AND Follow_Up_ID in (2,3)"
+    #f"WHERE Standard_Inclusion = 1"
+    #f"WHERE DR16_Spectroscopic_ID IN {IDs} and Standard_Inclusion = 1"
+    #f"WHERE DR16_Spectroscopic_ID = {IDs}"
+)
+
+ecle_Data = cursor.fetchall()
+
+if len(Candidate_Data) >= 1:
+
+    ecle_Object_Name_List = [item[0] for item in ecle_Data]
+    ecle_h_alpha_EW = [item[1] for item in ecle_Data]
+    ecle_h_delta_lick = [item[2] for item in ecle_Data]
+    ecle_h_delta_lick_err = [item[3] for item in ecle_Data]
+
+ecle_h_alpha_EW = -np.array(ecle_h_alpha_EW)
+ecle_h_delta_lick = np.array(ecle_h_delta_lick)
+ecle_h_delta_lick_err = np.array(ecle_h_delta_lick_err)
+
 fig, (ax1, ax2) = plt.subplots(2,1, sharex = True)
 
 ax1.scatter(star_forming_lick, star_forming_EW, color = 'b', marker = '.')
+ax1.scatter(ecle_h_delta_lick, ecle_h_alpha_EW, color = 'k', marker = 's')
 ax1.set_ylim(5, 100)
 
 
 ax2.scatter(star_forming_lick, star_forming_EW, color = 'b', marker = '.')
 ax2.scatter(quiscent_lick, quiscent_EW, color = 'r', marker = '.')
+ax1.scatter(ecle_h_delta_lick, ecle_h_alpha_EW, color = 'k', marker = 's')
 ax2.vlines(1.31, -10, 3, 'k')
 ax2.vlines(4, -5, 3, 'k', 'dashed')
 ax2.hlines(3, 1.31, 12, 'k')

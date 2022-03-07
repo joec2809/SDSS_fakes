@@ -21,7 +21,7 @@ Output_TableID = 'SDSS_Non_FeVII_Fake_Spectra'
 
 number_to_output = 10000
 
-TDE_type_dist = True
+TDE_type_dist = False
 
 if TDE_type_dist:
     no_psb = (5/41)*number_to_output
@@ -157,3 +157,5 @@ else:
         cursor.execute(cmd)
 
     Hirogen_Functions.commit(Data)
+
+print(Output_TableID, TDE_type_dist)

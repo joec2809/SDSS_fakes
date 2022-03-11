@@ -28,8 +28,8 @@ User_Config = Hirogen_Functions.user_config(user=User)
 
 Objects_TableID = "SDSS_Confirmed_Spectra"
 
-TDE_type_dist = False
-mode = "Non FeVII"
+TDE_type_dist = True
+mode = "FeVII"
 
 if TDE_type_dist:
     if mode == "FeVII":

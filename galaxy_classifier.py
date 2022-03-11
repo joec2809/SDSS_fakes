@@ -23,7 +23,7 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-TableID = "SDSS_TDE_Dist_FeVII_Fake_Spectra"
+TableID = "SDSS_FeVII_Fake_Spectra"
 ecle_TableID = "SDSS_Confirmed_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)

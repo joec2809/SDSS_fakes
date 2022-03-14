@@ -17,19 +17,24 @@ from astropy.convolution import convolve, Box1DKernel
 
 User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
-Output_TableID = 'SDSS_FeVII_Fake_Spectra'
+Output_TableID = 'SDSS_Sf_Non_FeVII_Fake_Spectra'
 
 number_to_output = 10000
 
-TDE_type_dist = False
+non_random_dist = True
 
-if TDE_type_dist:
-    no_psb = (5/41)*number_to_output
-    no_qbs = (8/41)*number_to_output
-    no_quiscent = (13/41)*number_to_output
-    no_sf = (15/41)*number_to_output
+psb_frac = 0
+qbs_frac = 0
+quiescent_frac = 0
+sf_frac = 1
 
-    gal_types = np.array([no_psb, no_qbs, no_quiscent, no_sf])
+if non_random_dist:
+    no_psb = psb_frac*number_to_output
+    no_qbs = qbs_frac*number_to_output
+    no_quiescent = quiescent_frac*number_to_output
+    no_sf = sf_frac*number_to_output
+
+    gal_types = np.array([no_psb, no_qbs, no_quiescent, no_sf])
     gal_types_rounded = np.zeros(4)
 
     no_floored = 0
@@ -56,10 +61,10 @@ if TDE_type_dist:
 
     psb_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err > 4)"
     qbs_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err BETWEEN 1.31 AND 4)"
-    quiscent_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err < 1.31)"
+    quiescent_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err < 1.31)"
     sf_cond = "WHERE (lin_con_pEQW_Halpha < -3)"
 
-    conditions = [psb_cond, qbs_cond, quiscent_cond, sf_cond]
+    conditions = [psb_cond, qbs_cond, quiescent_cond, sf_cond]
 
     User_Config = Hirogen_Functions.user_config(user=User)
 
@@ -158,4 +163,4 @@ else:
 
     Hirogen_Functions.commit(Data)
 
-print(Output_TableID, TDE_type_dist)
+print(Output_TableID, non_random_dist)

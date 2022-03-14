@@ -32,24 +32,8 @@ Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
 plot = "FeVII"
-TDE_type_dist = True
 
-if TDE_type_dist:
-    if plot == "FeVII":
-        Fakes_TableID = "SDSS_TDE_Dist_FeVII_Fake_Spectra"
-    elif plot == "Non FeVII":
-        Fakes_TableID = "SDSS_TDE_Dist_Non_FeVII_Fake_Spectra"
-    else:
-        print("Table not set correctly")
-        sys.exit()
-else:
-    if plot == "FeVII":
-        Fakes_TableID = "SDSS_FeVII_Fake_Spectra"
-    elif plot == "Non FeVII":
-        Fakes_TableID = "SDSS_Non_FeVII_Fake_Spectra"
-    else:
-        print("Table not set correctly")
-        sys.exit()
+Fakes_TableID = "SDSS_Sf_FeVII_Fake_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
 
@@ -221,7 +205,7 @@ def sigmoid(x, A, K, B, v, Q):
 
 par_rich, cov_rich = curve_fit(sigmoid, fin_bin_centres, fin_det_eff, sigma = fin_det_err, bounds = ((0, 0, -np.inf, -np.inf, -np.inf,), (1, 1, np.inf, np.inf, np.inf)), maxfev = 5000)
 
-xs = np.arange(-400, 50, 0.1)
+xs = np.arange(-500, 50, 0.1)
 zoom_xs =np.arange(-50, 10, 0.1)
 
 """fitted_sig = lambda x: par_rich[0]+((par_rich[1]-par_rich[0])/((1+par_rich[4]*np.exp(-par_rich[2]*x))**(1/par_rich[3])))
@@ -260,16 +244,9 @@ axins.set_ylim(0,1.1)
 """axins.vlines(half_det_eff, 0, 0.5, ls = '--', color = 'k')
 axins.hlines(0.5, -50, half_det_eff, ls = '--', color = 'k')"""
 
-if TDE_type_dist:
-    if plot == "FeVII":
-        plt.savefig("FeVII_detection_efficiency_TDE_dist.png")
-    elif plot == "Non FeVII":
-        plt.savefig("Non_FeVII_detection_efficiency_TDE_dist.png")
-else:
-    if plot == "FeVII":
-        plt.savefig("FeVII_detection_efficiency.png")
-    elif plot == "Non FeVII":
-        plt.savefig("Non_FeVII_detection_efficiency.png")
+
+plt.savefig("FeVII_detection_efficiency_sf.png")
+
 
 
 plt.show()

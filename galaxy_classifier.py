@@ -23,7 +23,7 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
-TableID = "SDSS_FeVII_Fake_Spectra"
+TableID = "SDSS_Sf_Non_FeVII_Fake_Spectra"
 ecle_TableID = "SDSS_Confirmed_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
@@ -93,7 +93,7 @@ sf_percent = (sf/len(non_nan_EW))*100
 
 print(f"{psb_percent}% of the sample are post-starburst, that's {psb} galaxies")
 print(f"{mod_bal_percent}% of the sample are moderately balmer strong, that's {mod_bal} galaxies")
-print(f"{quiscent_percent}% of the sample are other quiscent, that's {quiscent} galaxies")#
+print(f"{quiscent_percent}% of the sample are other quiscent, that's {quiscent} galaxies")
 print(f"{sf_percent}% of the sample are star forming, that's {sf} galaxies")
 
 

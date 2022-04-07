@@ -16,9 +16,15 @@ np.seterr(invalid='raise')
 # Configuration
 ##########################
 
+<<<<<<< HEAD
 User = 'Joe'
 Input_Data_File = "galaxy_spectra.csv"
 TableID = "SDSS_Galaxy_Spectra"
+=======
+User = 'Peter'
+Input_Data_File = "MyResult_2022318.csv"
+TableID = "SDSS_Confirmed_Objects"
+>>>>>>> 4d3c4afb1547b32cc39540611302ba45e0f3d112
 
 # Input_Data_File = "MyResult_2021615_RA_Above_20_Dec_Above_10_25000.csv"
 # Input_Data_File = "MyResult_2021615_RA_Above_20_Dec_Below_10_25000.csv"
@@ -191,11 +197,113 @@ def sdss_dr16_photom_datafile_reader(file):
     col55 = (np.array(spec_data[54])).astype(float)
     col56 = (np.array(spec_data[55])).astype(float)
 
+    # Portsmouth Pipeline
+
+    # Starforming
+    # Masses
+    col60 = []
+    col61 = []
+    col62 = []
+    # Metallicity
+    col63 = spec_data[63]
+    # SFR
+    col64 = []
+    col65 = []
+    col66 = []
+    # Age
+    col67 = []
+    col68 = []
+    col69 = []
+
+    # Passive
+    # Masses
+    col70 = []
+    col71 = []
+    col72 = []
+    # Metallicity
+    col73 = spec_data[73]
+    # SFR
+    col74 = []
+    col75 = []
+    col76 = []
+
+    # Age
+    col77 = []
+    col78 = []
+    col79 = []
+
+    # Stellar Velocity Dispersion
+    col80 = []
+    col81 = []
+
+    for xx, value in enumerate(spec_data[60]):
+        try:
+            col60.append(spec_data[60][xx].astype(float))
+            col61.append(spec_data[61][xx].astype(float))
+            col62.append(spec_data[62][xx].astype(float))
+
+            col64.append(spec_data[64][xx].astype(float))
+            col65.append(spec_data[65][xx].astype(float))
+            col66.append(spec_data[66][xx].astype(float))
+
+            col67.append(spec_data[67][xx].astype(float))
+            col68.append(spec_data[68][xx].astype(float))
+            col69.append(spec_data[69][xx].astype(float))
+
+            col70.append(spec_data[70][xx].astype(float))
+            col71.append(spec_data[71][xx].astype(float))
+            col72.append(spec_data[72][xx].astype(float))
+
+            col74.append(spec_data[74][xx].astype(float))
+            col75.append(spec_data[75][xx].astype(float))
+            col76.append(spec_data[76][xx].astype(float))
+
+            col77.append(spec_data[77][xx].astype(float))
+            col78.append(spec_data[78][xx].astype(float))
+            col79.append(spec_data[79][xx].astype(float))
+
+            col80.append(spec_data[80][xx].astype(float))
+            col81.append(spec_data[81][xx].astype(float))
+
+        except ValueError:
+            col60.append(-999)
+            col61.append(-999)
+            col62.append(-999)
+
+            col64.append(-999)
+            col65.append(-999)
+            col66.append(-999)
+
+            col67.append(-999)
+            col68.append(-999)
+            col69.append(-999)
+
+            col70.append(-999)
+            col71.append(-999)
+            col72.append(-999)
+
+            col74.append(-999)
+            col75.append(-999)
+            col76.append(-999)
+
+            col77.append(-999)
+            col78.append(-999)
+            col79.append(-999)
+
+            col80.append(-999)
+            col81.append(-999)
+
     return \
         col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, \
         col17, col18, col19, col20, col21, col22, col23, col24, col25, col26, col27, col28, col29, col30, col31, \
         col32, col33, col34, col35, col36, col37, col38, col39, col40, col41, col42, col43, col44, col45, col46, \
+<<<<<<< HEAD
         col47, col48, col49, col50, col51, col52, col53, col54, col55, col56
+=======
+        col47, col48, col49, col50, col51, col52, col53, col54, col55, col56, col57, col58, col59, col60, col61, \
+        col62, col63, col64, col65, col66, col67, col68, col69, col70, col71, col72, col73, col74, col75, col76, \
+        col77, col78, col79, col80, col81
+>>>>>>> 4d3c4afb1547b32cc39540611302ba45e0f3d112
 
 
 # This is no longer used
@@ -488,6 +596,7 @@ if __name__ == "__main__":
     Model_u_minus_r = Model_u - Model_r
     Model_u_minus_r_observation_err = (Model_u_err ** 2 + Model_r_err ** 2) ** 0.5
 
+<<<<<<< HEAD
     Model_g_minus_r = Model_g - Model_r
     Model_g_minus_r_observation_err = (Model_g_err ** 2 + Model_r_err ** 2) ** 0.5
 
@@ -503,11 +612,58 @@ if __name__ == "__main__":
 
     TotalHostMassEstimate_Err_Petro = (Mass_Systematic_Error ** 2 + Mass_Colour_Error_Petro ** 2) ** 0.5
     TotalHostMassEstimate_Err_Model = (Mass_Systematic_Error ** 2 + Mass_Colour_Error_Model ** 2) ** 0.5
+=======
+Petrosian_u_minus_r = Petrosian_u_AB - Petrosian_r_AB
+Petrosian_u_minus_r_observation_err = (Petrosian_u_AB_err ** 2 + Petrosian_r_AB_err ** 2) ** 0.5
+
+Petrosian_g_minus_r = Petrosian_g - Petrosian_r
+Petrosian_g_minus_r_observation_err = (Petrosian_g_AB_err ** 2 + Petrosian_r_AB_err ** 2) ** 0.5
+
+Petrosian_g_minus_i = Petrosian_g - Petrosian_i
+Petrosian_g_minus_i_observation_err = (Petrosian_g_AB_err ** 2 + Petrosian_i_AB_err ** 2) ** 0.5
+
+Model_u_minus_r = Model_u - Model_r
+Model_u_minus_r_observation_err = (Model_u_AB_err ** 2 + Model_r_AB_err ** 2) ** 0.5
+
+Model_g_minus_r = Model_g - Model_r
+Model_g_minus_r_observation_err = (Model_g_AB_err ** 2 + Model_r_AB_err ** 2) ** 0.5
+
+Model_g_minus_i = Model_g - Model_i
+Model_g_minus_i_observation_err = (Model_g_AB_err ** 2 + Model_i_AB_err ** 2) ** 0.5
+
+TotalHostMassEstimate_Petro = 1.15 + 0.7 * Petrosian_g_minus_i - 0.4 * Petrosian_i_AB
+TotalHostMassEstimate_Model = 1.15 + 0.7 * Model_g_minus_i - 0.4 * Model_i_AB
+
+Mass_Systematic_Error = 0.1  # Source: Taylor2011 - This is added in quadrature to the colour mass error
+Mass_Colour_Error_Petro = ((Petrosian_g_minus_i_observation_err ** 2) + (Petrosian_i_AB_err ** 2)) ** 0.5
+Mass_Colour_Error_Model = ((Model_g_minus_i_observation_err ** 2) + (Model_i_AB_err ** 2)) ** 0.5
+
+TotalHostMassEstimate_Err_Petro = (Mass_Systematic_Error ** 2 + Mass_Colour_Error_Petro ** 2) ** 0.5
+TotalHostMassEstimate_Err_Model = (Mass_Systematic_Error ** 2 + Mass_Colour_Error_Model ** 2) ** 0.5
+
+# Petrosian magnitudes should be preferred for this calculation but there is at least one case in the confirmed
+# candidates where the petrosian radii and magnitudes have truly biblical uncertainties, so I'm adding this calculation
+# as a background and for comparison purposes
+
+Petro_AB_i_Check = []
+AGN_Check = []
+
+SDSS_Explore_Links = []
+SDSS_Navigate_Links = []
+
+for ii, item in enumerate(DR16_SpectroscopicID):
+
+    if -21.3 < Petrosian_i_AB[ii] < 18.8:
+        Petro_AB_i_Check.append(1)
+    else:
+        Petro_AB_i_Check.append(0)
+>>>>>>> 4d3c4afb1547b32cc39540611302ba45e0f3d112
 
     # Petrosian magnitudes should be preferred for this calculation but there is at least one case in the confirmed
     # candidates where the petrosian radii and magnitudes have truly biblical uncertainties so I'm adding this calculation
     # as a background and for comparison purposes
 
+<<<<<<< HEAD
     Petro_AB_i_Check = []
     AGN_Check = []
 
@@ -520,6 +676,56 @@ if __name__ == "__main__":
             Petro_AB_i_Check.append(1)
         else:
             Petro_AB_i_Check.append(0)
+=======
+# Portsmouth Pipeline Values
+
+# Starforming
+# Masses
+Mass_Port_Starforming = Data_Input[60]
+Mass_Max_Port_Starforming = Data_Input[61]
+Mass_Min_Port_Starforming = Data_Input[62]
+
+# Metallicity
+Metallicity_Port_Starforming = Data_Input[63]
+
+# SFR
+SFR_Port_Starforming = Data_Input[64]
+SFR_Max_Port_Starforming = Data_Input[65]
+SFR_Min_Port_Starforming = Data_Input[66]
+
+# Age
+Age_Port_Starforming = Data_Input[67]
+Age_Max_Port_Starforming = Data_Input[68]
+Age_Min_Port_Starforming = Data_Input[69]
+
+# Passive
+# Masses
+Mass_Port_Passive = Data_Input[70]
+Mass_Max_Port_Passive = Data_Input[71]
+Mass_Min_Port_Passive = Data_Input[72]
+
+# Metallicity
+Metallicity_Port_Passive = Data_Input[73]
+
+# SFR
+SFR_Port_Passive = Data_Input[74]
+SFR_Max_Port_Passive = Data_Input[75]
+SFR_Min_Port_Passive = Data_Input[76]
+
+# Age
+Age_Port_Passive = Data_Input[77]
+Age_Max_Port_Passive = Data_Input[78]
+Age_Min_Port_Passive = Data_Input[79]
+
+# Stellar Velocity Dispersion
+Stellar_Velocity_Dispersion = Data_Input[80]
+Stellar_Velocity_Dispersion_Err = Data_Input[81]
+
+Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
+cursor = Data.cursor()
+cursor.execute(f"SELECT * FROM {Database}.{TableID}")
+rows = cursor.fetchall()
+>>>>>>> 4d3c4afb1547b32cc39540611302ba45e0f3d112
 
         SDSS_Explore_Links.append(f'{SDSS_Explore_url}{DR16_PhotometricID[ii]}')
         SDSS_Navigate_Links.append(f'{SDSS_Navigate_url}{RA[ii]}&dec={DEC[ii]}')
@@ -558,6 +764,7 @@ if __name__ == "__main__":
 
     while Spec_to_Download_ID < len(DR16_SpectroscopicID):
 
+<<<<<<< HEAD
         Spectra_Download_File = open(f"Spectra_to_Download_{Input_Data_File}_{Download_File_Number}.txt", 'w+')
 
         while Spec_to_Download_ID < len(DR16_SpectroscopicID):
@@ -705,3 +912,174 @@ if __name__ == "__main__":
     executionT = endT - startT
 
     sys.exit()
+=======
+        cmd = f"update {Database}.{TableID} " \
+              f"set Right_Ascension = '{RA[Spec_to_Download_ID]}'," \
+              f"Declination = '{DEC[Spec_to_Download_ID]}'," \
+              f"RA_HMS = '{RA_HMS[Spec_to_Download_ID]}'," \
+              f"DEC_DMS = '{DEC_DMS[Spec_to_Download_ID]}'," \
+              f"SDSS_ShortName = '{SDSS_Shortnames[Spec_to_Download_ID]}'," \
+              f"DR16_ParentID = '{DR16_ParentID[Spec_to_Download_ID]}'," \
+              f"DR16_Photometric_ID = '{DR16_PhotometricID[Spec_to_Download_ID]}'," \
+              f"SDSS_DR16_Explore_Link ='{SDSS_Explore_Links[Spec_to_Download_ID]}'," \
+              f"SDSS_DR16_Navigate_Link ='{SDSS_Navigate_Links[Spec_to_Download_ID]}'," \
+              f"survey = '{Survey[Spec_to_Download_ID]}'," \
+              f"run2d = '{Run2D[Spec_to_Download_ID]}'," \
+              f"field = '{Field[Spec_to_Download_ID]}'," \
+              f"spec_Plate = '{Plate[Spec_to_Download_ID]}'," \
+              f"spec_MJD = '{MJD[Spec_to_Download_ID]}' ," \
+              f"spec_FiberID = '{FiberID[Spec_to_Download_ID]}'," \
+              f"SDSS_Type = '{SDSS_Type[Spec_to_Download_ID]}'," \
+              f"spec_class_SDSS = '{Spec_Classification[Spec_to_Download_ID]}'," \
+              f"spec_subclass_SDSS = '{Spec_Sub_Classification[Spec_to_Download_ID]}'," \
+              f"spec_Human_Comments = '{Spec_Human_Comments[Spec_to_Download_ID]}'," \
+              f"z_SDSS_spec = '{Spec_z[Spec_to_Download_ID]}'," \
+              f"z_err_SDSS_spec = '{Spec_z_err[Spec_to_Download_ID]}'," \
+              f"z_warning_SDSS_spec = '{Spec_z_warning[Spec_to_Download_ID]}'," \
+              f"Distance_MPC = '{Distance[Spec_to_Download_ID]}'," \
+              f"Max_Distance_MPC = '{MaxDistance[Spec_to_Download_ID]}'," \
+              f"Min_Distance_MPC = '{MinDistance[Spec_to_Download_ID]}'," \
+              f"Distance_Modulus='{Distance_Modulus[Spec_to_Download_ID]}'," \
+              f"Distance_Modulus_Err='{Distance_Modulus_Err[Spec_to_Download_ID]}'," \
+              f"median_SNR_SDSS_spec = '{Median_SNR[Spec_to_Download_ID]}'," \
+              f"u_extinction = '{Extinction_u[Spec_to_Download_ID]}'," \
+              f"g_extinction = '{Extinction_g[Spec_to_Download_ID]}'," \
+              f"r_extinction = '{Extinction_r[Spec_to_Download_ID]}'," \
+              f"i_extinction = '{Extinction_i[Spec_to_Download_ID]}'," \
+              f"z_extinction = '{Extinction_z[Spec_to_Download_ID]}'," \
+              f"generalised_extinction = '{Mean_E_BminusV[Spec_to_Download_ID]}'," \
+              f"u_petro_mag = '{Petrosian_u[Spec_to_Download_ID]}'," \
+              f"u_petro_mag_err = '{Petrosian_u_err[Spec_to_Download_ID]}'," \
+              f"u_petro_AB_mag = '{Petrosian_u_AB[Spec_to_Download_ID]}'," \
+              f"u_petro_AB_mag_err = '{Petrosian_u_AB_err[Spec_to_Download_ID]}'," \
+              f"u_petro_rad= '{Petrosian_u_rad[Spec_to_Download_ID]}'," \
+              f"u_petro_rad_err= '{Petrosian_u_rad_err[Spec_to_Download_ID]}'," \
+              f"g_petro_mag = '{Petrosian_g[Spec_to_Download_ID]}'," \
+              f"g_petro_mag_err = '{Petrosian_g_err[Spec_to_Download_ID]}'," \
+              f"g_petro_AB_mag = '{Petrosian_g_AB[Spec_to_Download_ID]}'," \
+              f"g_petro_AB_mag_err = '{Petrosian_g_AB_err[Spec_to_Download_ID]}'," \
+              f"g_petro_rad= '{Petrosian_g_rad[Spec_to_Download_ID]}'," \
+              f"g_petro_rad_err= '{Petrosian_g_rad_err[Spec_to_Download_ID]}'," \
+              f"r_petro_mag = '{Petrosian_r[Spec_to_Download_ID]}'," \
+              f"r_petro_mag_err = '{Petrosian_r_err[Spec_to_Download_ID]}'," \
+              f"r_petro_AB_mag = '{Petrosian_r_AB[Spec_to_Download_ID]}'," \
+              f"r_petro_AB_mag_err = '{Petrosian_r_AB_err[Spec_to_Download_ID]}'," \
+              f"r_petro_rad= '{Petrosian_r_rad[Spec_to_Download_ID]}'," \
+              f"r_petro_rad_err= '{Petrosian_r_rad_err[Spec_to_Download_ID]}'," \
+              f"i_petro_mag = '{Petrosian_i[Spec_to_Download_ID]}'," \
+              f"i_petro_mag_err = '{Petrosian_i_err[Spec_to_Download_ID]}'," \
+              f"i_petro_AB_mag = '{Petrosian_i_AB[Spec_to_Download_ID]}'," \
+              f"i_petro_AB_mag_err = '{Petrosian_i_AB_err[Spec_to_Download_ID]}'," \
+              f"i_petro_rad= '{Petrosian_i_rad[Spec_to_Download_ID]}'," \
+              f"i_petro_rad_err= '{Petrosian_i_rad_err[Spec_to_Download_ID]}'," \
+              f"z_petro_mag = '{Petrosian_z[Spec_to_Download_ID]}'," \
+              f"z_petro_mag_err = '{Petrosian_z_err[Spec_to_Download_ID]}'," \
+              f"z_petro_AB_mag = '{Petrosian_z_AB[Spec_to_Download_ID]}'," \
+              f"z_petro_AB_mag_err = '{Petrosian_z_AB_err[Spec_to_Download_ID]}'," \
+              f"z_petro_rad= '{Petrosian_z_rad[Spec_to_Download_ID]}'," \
+              f"z_petro_rad_err= '{Petrosian_z_rad_err[Spec_to_Download_ID]}'," \
+              f"Petro_Total_Host_Mass_Estimate = '{TotalHostMassEstimate_Petro[Spec_to_Download_ID]}'," \
+              f"Petro_Total_Host_Mass_Estimate_err = '{TotalHostMassEstimate_Err_Petro[Spec_to_Download_ID]}'," \
+              f"Model_Total_Host_Mass_Estimate = '{TotalHostMassEstimate_Model[Spec_to_Download_ID]}'," \
+              f"Model_Total_Host_Mass_Estimate_err = '{TotalHostMassEstimate_Err_Model[Spec_to_Download_ID]}'," \
+              f"u_model_mag = '{Model_u[Spec_to_Download_ID]}'," \
+              f"u_model_mag_err = '{Model_u_err[Spec_to_Download_ID]}'," \
+              f"u_model_AB_mag = '{Model_u_AB[Spec_to_Download_ID]}'," \
+              f"u_model_AB_mag_err = '{Model_u_AB_err[Spec_to_Download_ID]}'," \
+              f"g_model_mag = '{Model_g[Spec_to_Download_ID]}'," \
+              f"g_model_mag_err = '{Model_g_err[Spec_to_Download_ID]}'," \
+              f"g_model_AB_mag = '{Model_g_AB[Spec_to_Download_ID]}'," \
+              f"g_model_AB_mag_err = '{Model_g_AB_err[Spec_to_Download_ID]}'," \
+              f"r_model_mag = '{Model_r[Spec_to_Download_ID]}'," \
+              f"r_model_mag_err = '{Model_r_err[Spec_to_Download_ID]}'," \
+              f"r_model_AB_mag = '{Model_r_AB[Spec_to_Download_ID]}'," \
+              f"r_model_AB_mag_err = '{Model_r_AB_err[Spec_to_Download_ID]}'," \
+              f"i_model_mag = '{Model_i[Spec_to_Download_ID]}'," \
+              f"i_model_mag_err = '{Model_i_err[Spec_to_Download_ID]}'," \
+              f"i_model_AB_mag = '{Model_i_AB[Spec_to_Download_ID]}'," \
+              f"i_model_AB_mag_err = '{Model_i_AB_err[Spec_to_Download_ID]}'," \
+              f"z_model_mag = '{Model_z[Spec_to_Download_ID]}'," \
+              f"z_model_mag_err = '{Model_z_err[Spec_to_Download_ID]}'," \
+              f"z_model_AB_mag = '{Model_z_AB[Spec_to_Download_ID]}'," \
+              f"z_model_AB_mag_err = '{Model_z_AB_err[Spec_to_Download_ID]}'," \
+              f"u_minus_r_petro = '{Petrosian_u_minus_r[Spec_to_Download_ID]}'," \
+              f"u_minus_r_petro_observation_err = '{Petrosian_u_minus_r_observation_err[Spec_to_Download_ID]}'," \
+              f"g_minus_r_petro = '{Petrosian_g_minus_r[Spec_to_Download_ID]}'," \
+              f"g_minus_r_petro_observation_err = '{Petrosian_g_minus_r_observation_err[Spec_to_Download_ID]}'," \
+              f"g_minus_i_petro = '{Petrosian_g_minus_i[Spec_to_Download_ID]}'," \
+              f"g_minus_i_petro_observation_err = '{Petrosian_g_minus_i_observation_err[Spec_to_Download_ID]}'," \
+              f"u_minus_r_model = '{Model_u_minus_r[Spec_to_Download_ID]}'," \
+              f"u_minus_r_model_observation_err = '{Model_u_minus_r_observation_err[Spec_to_Download_ID]}'," \
+              f"g_minus_r_model = '{Model_g_minus_r[Spec_to_Download_ID]}'," \
+              f"g_minus_r_model_observation_err = '{Model_g_minus_r_observation_err[Spec_to_Download_ID]}'," \
+              f"g_minus_i_model = '{Model_g_minus_i[Spec_to_Download_ID]}'," \
+              f"g_minus_i_model_observation_err = '{Model_g_minus_i_observation_err[Spec_to_Download_ID]}'," \
+              f"clean = '{Clean_Flag[Spec_to_Download_ID]}'," \
+              f"flags = '{Phot_Flags[Spec_to_Download_ID]}'," \
+              f"Phot_MJD = '{Phot_MJD[Spec_to_Download_ID]}'," \
+              f"Phot_skyVersion = '{Phot_skyVersion[Spec_to_Download_ID]}'," \
+              f"Phot_Run = '{Phot_Run[Spec_to_Download_ID]}'," \
+              f"Phot_Rerun = '{Photo_Rerun[Spec_to_Download_ID]}'," \
+              f"ABS_Petro_i_Expected_Mag_Range = '{Petro_AB_i_Check[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_Mass = '{Mass_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_MaxMass = '{Mass_Max_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_MinMass = '{Mass_Min_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_Metallicity = '{Metallicity_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_SFR = '{SFR_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_MaxSFR = '{SFR_Max_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_MinSFR = '{SFR_Min_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_Age = '{Age_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_MaxAge = '{Age_Max_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Starforming_MinAge = '{Age_Min_Port_Starforming[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_Mass = '{Mass_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_MaxMass = '{Mass_Max_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_MinMass = '{Mass_Min_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_Metallicity = '{Metallicity_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_SFR = '{SFR_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_MaxSFR = '{SFR_Max_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_MinSFR = '{SFR_Min_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_Age = '{Age_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_MaxAge = '{Age_Max_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_Passive_MinAge = '{Age_Min_Port_Passive[Spec_to_Download_ID]}'," \
+              f"Portsmouth_StellarVelocityDispersion = '{Stellar_Velocity_Dispersion[Spec_to_Download_ID]}'," \
+              f"Portsmouth_StellarVelocityDispersion_Err = '{Stellar_Velocity_Dispersion_Err[Spec_to_Download_ID]}'" \
+              f" where DR16_Spectroscopic_ID = '{DR16_SpectroscopicID[Spec_to_Download_ID]}' "
+
+        if Survey[Spec_to_Download_ID] in ['sdss', 'segue1', 'segue2']:
+
+            Spectra_Download_File.write(
+                f"/sdss/spectro/redux/{Run2D[Spec_to_Download_ID]}/spectra/{Plate[Spec_to_Download_ID]}/spec-{Plate[Spec_to_Download_ID]}-"
+                f"{MJD[Spec_to_Download_ID]}-{FiberID[Spec_to_Download_ID]}.fits\n"
+            )
+
+        elif Survey[Spec_to_Download_ID] in ['eboss', 'boss']:
+
+            Spectra_Download_File.write(
+                f"/eboss/spectro/redux/{Run2D[Spec_to_Download_ID]}/spectra/full/{Plate[Spec_to_Download_ID]}/spec-{Plate[Spec_to_Download_ID]}-"
+                f"{MJD[Spec_to_Download_ID]}-{FiberID[Spec_to_Download_ID]}.fits\n"
+            )
+
+        else:
+            print("Not sure how to handle this survey - exiting for now")
+            print(f"{DR16_SpectroscopicID[Spec_to_Download_ID]}\t{Survey[Spec_to_Download_ID]}")
+            sys.exit()
+
+        cursor.execute(cmd)
+        Spec_to_Download_ID = Spec_to_Download_ID + 1
+
+        if Spec_to_Download_ID % 2500 == 0:
+            Download_File_Number = Download_File_Number + 1
+            Spectra_Download_File.close()
+            break
+
+Spectra_Download_File.close()
+
+print("New object data added.\nClosing connection to database and exiting.")
+
+Hirogen_Functions.commit_and_close(Data, cursor)
+
+endT = time.time()
+executionT = endT - startT
+
+sys.exit()
+>>>>>>> 4d3c4afb1547b32cc39540611302ba45e0f3d112

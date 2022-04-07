@@ -12,7 +12,6 @@ from astropy import units as u
 from astropy.convolution import convolve, Box1DKernel
 from scipy.signal import medfilt
 from scipy.ndimage import gaussian_filter1d
-from astropy.nddata import InverseVariance
 from dust_extinction.parameter_averages import F99
 from numpy.fft import *
 from mysql.connector import errorcode
@@ -28,7 +27,9 @@ if NERSC:
     # DESI Specific Packages
 
     import fitsio
-    import healpy as hp
+    # import healpy as hp
+    # When last I checked there was an issue with importing healpy on NERSC due to a circular import issue
+
     import desispec.io
 
     from glob import glob
@@ -510,10 +511,12 @@ def interesting_line_labels_short():
 
 
 def region_cutter(shift, wave, flux, low_cut, high_cut, mode='Shift', error=None):
-    """Cuts down a spectrum, flux, wavelength and determined shift, based on either a shift or wavelength region
 
-     Defaults to shift for compatibility
-    Expects wave and flux to have a unit but does NOT preserve these"""
+    """
+    Cuts down a spectrum, flux, wavelength and determined shift, based on either a shift or wavelength region
+    Defaults to shift for compatibility
+    Expects wave and flux to have a unit but does NOT preserve these
+    """
 
     wave = wave.value
     flux = flux.value
@@ -523,7 +526,7 @@ def region_cutter(shift, wave, flux, low_cut, high_cut, mode='Shift', error=None
     cut_flux = []
     cut_error = []
 
-    if mode.lower() in {'shift', 'velocity'}:
+    if mode.upper() in {'SHIFT', 'VELOCITY'}:
         for xx, item in enumerate(shift):
 
             if low_cut <= shift[xx] <= high_cut:
@@ -536,7 +539,7 @@ def region_cutter(shift, wave, flux, low_cut, high_cut, mode='Shift', error=None
             elif shift[xx] > high_cut:
                 break
 
-    elif mode.lower() in {'wavelength', 'lambda'}:
+    elif mode.upper() in {'WAVELENGTH', 'LAMBDA'}:
 
         for xx, item in enumerate(wave):
 
@@ -551,7 +554,7 @@ def region_cutter(shift, wave, flux, low_cut, high_cut, mode='Shift', error=None
                 break
 
     else:
-        print('mode selection not recognised.\nPlease check and try again.')
+        print('Mode selection not recognised.\nPlease check and try again.')
         sys.exit()
 
     return cut_shift, cut_wave, cut_flux, cut_error
@@ -2028,20 +2031,42 @@ def lick_index_calculation(wave, flux, err, verbose=False):
 ########################################################################
 
 def round_up_to_nearest(x, a):
-    return math.ceil(x / a) * a
+
+    try:
+        rounded = math.ceil(x / a) * a
+    except ValueError:
+        print('Rounding up error encountered')
+        rounded = -999
+
+    return rounded
 
 
 def round_down_to_nearest(x, a):
-    return math.floor(x / a) * a
+
+    try:
+        rounded = math.floor(x / a) * a
+    except ValueError:
+        print('Rounding down error encountered')
+        rounded = -999
+
+    return rounded
 
 
 ########################################################################
 # Find index of value in array closest to given value
 ########################################################################
-def find_nearest(array, value):
+def find_nearest_index_only(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
+
+# Actual value as well as the index
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+
+    return array[idx], idx
 
 
 ########################

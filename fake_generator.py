@@ -28,9 +28,10 @@ User_Config = Hirogen_Functions.user_config(user=User)
 
 Objects_TableID = "SDSS_Confirmed_Spectra"
 
-Spectra_TableID = "SDSS_Sf_FeVII_Fake_Spectra"
+Spectra_TableID = "SDSS_Fake_Spectra"
 
-mode = "FeVII"
+# Choosing to use all ECLEs, those with FeVII lines or those without
+mode = "both"
 
 config_parameters = Hirogen_Functions.main_config()  # Draws from centralised parameter declarations
 
@@ -130,14 +131,13 @@ galaxy_FilePaths = Hirogen_Functions.sdss_spectra_file_path_generator(
     galaxy_Path_Override_Flag_List, galaxy_Path_Override_List
 )
 
-# All IDs
-IDs = (2583945021774391296, 1544754514769242112, 961619990203623424, 1955789619387721728, 2380274238536837120)
-
 
 if mode == "FeVII":
     IDs = (2583945021774391296, 1544754514769242112)
 elif mode == "Non FeVII":
     IDs = (961619990203623424, 1955789619387721728, 2380274238536837120)
+elif mode == 'both':
+    IDs = (2583945021774391296, 1544754514769242112, 961619990203623424, 1955789619387721728, 2380274238536837120)
 
 
 cursor.execute(
@@ -250,6 +250,9 @@ while i < len(galaxy_data):
     # Apply random scaling factor to peaks and error
 
     scale_factor_max = mean(avg_max_scale_factor)
+
+    # If OIII line is present, set maximum scaling factor possible at value which would match largest Fe line to strength of OIII line
+    # If not present, use average of previously used values
 
     if galaxy_OIII_pEQW[i] < LineDetection_pEQW_Threshold or galaxy_Hbeta_pEQW[i] < LineDetection_pEQW_Threshold:
         Fe_flux = np.array([ecle_FeVII_flux[peak_file_idx], ecle_FeX_flux[peak_file_idx], ecle_FeXI_flux[peak_file_idx], ecle_FeXIV_flux[peak_file_idx]])

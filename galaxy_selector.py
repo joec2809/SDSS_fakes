@@ -17,12 +17,15 @@ from astropy.convolution import convolve, Box1DKernel
 
 User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
-Output_TableID = 'SDSS_Sf_Non_FeVII_Fake_Spectra'
+Output_TableID = 'SDSS_Fake_Spectra'
 
 number_to_output = 10000
 
-non_random_dist = True
 
+# True of using a set distribution of galaxy types
+non_random_dist = False
+
+# Fraction of each type
 psb_frac = 0
 qbs_frac = 0
 quiescent_frac = 0
@@ -40,7 +43,8 @@ if non_random_dist:
     no_floored = 0
     no_ceiled = 0
     i = 0
-
+    # Making sure that the total number of galaxies selected is correct
+    # Means rounding two of the types up and two down
     while no_floored < 2 or no_ceiled < 2:
         randint = np.random.randint(0,2)
         if randint == 0:
@@ -59,6 +63,7 @@ if non_random_dist:
                 no_floored += 1
         i += 1
 
+    # Conditions for using in SQL database
     psb_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err > 4)"
     qbs_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err BETWEEN 1.31 AND 4)"
     quiescent_cond = "WHERE (lin_con_pEQW_Halpha > -3) AND (Lick_HDelta_Index - Lick_HDelta_Index_Err < 1.31)"
@@ -105,7 +110,7 @@ if non_random_dist:
         used_spectra = []
         while len(used_spectra) < gal_types_rounded[k]:
             j = np.random.randint(len(Candidate_Data))
-            if j in used_spectra:
+            if j in used_spectra: # Making sure galaxies aren't selected twice
                 continue
             used_spectra.append(j)
 
@@ -153,7 +158,7 @@ else:
     used_spectra = []
     while len(used_spectra) < number_to_output:
         j = np.random.randint(len(Candidate_Data))
-        if j in used_spectra:
+        if j in used_spectra: # Making sure galaxies aren't selected twice
             continue
         used_spectra.append(j)
 

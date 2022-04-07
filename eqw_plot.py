@@ -31,9 +31,11 @@ Database_User = User_Config[1]
 Database_Password = User_Config[2]
 Main_Spectra_Path = User_Config[3]
 
+
+# Select which fakes to use
 plot = "FeVII"
 
-Fakes_TableID = "SDSS_Sf_FeVII_Fake_Spectra"
+Fakes_TableID = "SDSS_Fake_Spectra"
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
 
@@ -76,11 +78,14 @@ else:
 
     sys.exit()
 
+# Determine if object is candidate
 ecle_candidate = np.zeros(len(ecle_candidate_score))
 for i, score in enumerate(ecle_candidate_score):
     if score >= 7 or (fevii_flag[i]+fex_flag[i]+fexi_flag[i]+fexiv_flag[i])> 0:
         ecle_candidate[i] = 1
 
+
+# Remove nans so won't affect plots
 fevii_pEQW = np.array(fevii_pEQW)
 nans = np.argwhere(fevii_pEQW <= -999)
 fevii_pEQW[nans] = 0
@@ -97,7 +102,7 @@ fexiv_pEQW = np.array(fexiv_pEQW)
 nans = np.argwhere(fexiv_pEQW <= -999)
 fexiv_pEQW[nans] = 0
 
-
+# Calculate average pEQW
 if plot == "FeVII":
     total_pEQW = (fevii_pEQW + fex_pEQW + fexi_pEQW + fexiv_pEQW)/4
 elif plot == "Non FeVII":
@@ -108,6 +113,7 @@ total_pEQW_sort = total_pEQW[total_sort_ind]
 scores_sort = ecle_candidate[total_sort_ind]
 
 # Main Plot
+# Bin pEQWs and calculate detection efficiencies
 
 bin_width = 5
 
@@ -154,6 +160,9 @@ not_nans = ~np.isnan(det_eff)
 fin_det_eff = det_eff[not_nans]
 fin_det_err = det_error[not_nans]
 fin_bin_centres = bin_centres[not_nans]
+
+if Fakes_TableID == "SDSS_Fake_Spectra":
+    fin_det_err[fin_bin_centres < -250] = 10**-20
 
 # Inset
 
@@ -203,10 +212,13 @@ for i in range(len(zoom_bin_centres)):
 def sigmoid(x, A, K, B, v, Q):
     return A+((K-A)/((1+Q*np.exp(-B*x))**(1/v)))
 
-par_rich, cov_rich = curve_fit(sigmoid, fin_bin_centres, fin_det_eff, sigma = fin_det_err, bounds = ((0, 0, -np.inf, -np.inf, -np.inf,), (1, 1, np.inf, np.inf, np.inf)), maxfev = 5000)
+# Fit curve parameters to data
+par, cov = curve_fit(sigmoid, fin_bin_centres, fin_det_eff, sigma = fin_det_err, bounds = ((0, 0, -np.inf, -np.inf, -np.inf,), (1, 1, np.inf, np.inf, np.inf)), maxfev = 5000)
 
 xs = np.arange(-500, 50, 0.1)
 zoom_xs =np.arange(-50, 10, 0.1)
+
+np.savetxt("all_parameters.csv", par)
 
 """fitted_sig = lambda x: par_rich[0]+((par_rich[1]-par_rich[0])/((1+par_rich[4]*np.exp(-par_rich[2]*x))**(1/par_rich[3])))
 
@@ -220,10 +232,10 @@ fig, ax = plt.subplots(figsize = (20,10))
 
 ax.errorbar(bin_centres, det_eff, yerr = det_err, xerr = pEQW_err, fmt = '.k', ls = 'none', capsize = 3)
 
-ax.plot(xs, sigmoid(xs, par_rich[0], par_rich[1], par_rich[2], par_rich[3], par_rich[4]), 'k')
+ax.plot(xs, sigmoid(xs, par[0], par[1], par[2], par[3], par[4]), 'k')
 
 if plot == "FeVII":
-    ax.set_title('Detection efficiency for fakes generated using spectra with FeVII lines')
+    ax.set_title('Detection efficiency for fakes generated using mix of spectra with and without FeVII lines')
 elif plot == "Non FeVII":
     ax.set_title('Detection efficiency for fakes generated using spectra without FeVII lines')
 ax.set_xlabel(r'Average Equivalent Width of Coronal Lines, $\AA$')
@@ -237,7 +249,7 @@ axins = fig.add_axes([left, bottom, width, height])
 
 axins.errorbar(zoom_bin_centres, zoom_det_eff, xerr = zoom_pEQW_err, yerr = zoom_det_err, fmt = 'k.', ls = 'none', capsize = 3)
 
-axins.plot(zoom_xs, sigmoid(zoom_xs, par_rich[0], par_rich[1], par_rich[2], par_rich[3], par_rich[4]), 'k')
+axins.plot(zoom_xs, sigmoid(zoom_xs, par[0], par[1], par[2], par[3], par[4]), 'k')
 axins.set_xlim(-50, 10)
 axins.set_ylim(0,1.1)
 
@@ -245,8 +257,7 @@ axins.set_ylim(0,1.1)
 axins.hlines(0.5, -50, half_det_eff, ls = '--', color = 'k')"""
 
 
-plt.savefig("FeVII_detection_efficiency_sf.png")
-
+plt.savefig("all_detection_efficiency.png")
 
 
 plt.show()

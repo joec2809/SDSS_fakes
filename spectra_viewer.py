@@ -12,10 +12,13 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy import units as u
 
+import mpl_style
+plt.style.use(mpl_style.scientific)
+
 User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 
-TableID = "SDSS_FeVII_Fake_Spectra"
+TableID = "SDSS_ECLE_Spectra"
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -26,34 +29,12 @@ Main_Spectra_Path = User_Config[3]
 
 Data = Hirogen_Functions.database_connection(user=Database_User, password=Database_Password, database=Database)
 
+all_lines = Hirogen_Functions.lines_for_analysis()
+fe_lines = Hirogen_Functions.coronal_lines()
+line_labels = Hirogen_Functions.presentation_zoom_line_labels()
 
-print("\n")
-cursor = Data.cursor()
-
-cursor.execute(
-    f"SELECT DR16_Spectroscopic_ID "
-    f"FROM `{Database}`.`{TableID}`"
-    #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
-    #f"WHERE lin_con_pEQW_Halpha is NULL"
-    #f"WHERE z_SDSS_spec >= 0.2"
-    #f"WHERE Follow_Up_ID = 0"
-    #f"WHERE Follow_Up_ID in (1,2,3)"
-    #f"WHERE Nickname = 'Leafeon' AND Follow_Up_ID in (2,3)"
-    #f"WHERE Standard_Inclusion = 1"
-    #f"WHERE DR16_Spectroscopic_ID IN {IDs} and Standard_Inclusion = 1"
-    #f"WHERE DR16_Spectroscopic_ID = {IDs}"
-)
-
-ID_Data = cursor.fetchall()
-
-if len(ID_Data) >= 1:
-    ID_List = [item[0] for item in ID_Data]
-
-rand_idx = np.random.randint(0,len(ID_List))
-
-IDs = (ID_List[rand_idx])
-
-#IDs = (494429519780800512)
+short_name = 'SDSS J0952'
+IDs = (0,2)
 
 print("\n")
 cursor = Data.cursor()
@@ -66,12 +47,13 @@ cursor.execute(
     #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
     #f"WHERE lin_con_pEQW_Halpha is NULL"
     #f"WHERE z_SDSS_spec >= 0.2"
+    f"WHERE SDSS_Very_ShortName = 'SDSS J0952' and Follow_Up_ID in {IDs} "
     #f"WHERE Follow_Up_ID = 0"
     #f"WHERE Follow_Up_ID in (1,2,3)"
     #f"WHERE Nickname = 'Leafeon' AND Follow_Up_ID in (2,3)"
     #f"WHERE Standard_Inclusion = 1"
     #f"WHERE DR16_Spectroscopic_ID IN {IDs} and Standard_Inclusion = 1"
-    f"WHERE DR16_Spectroscopic_ID = {IDs}"
+    #f"WHERE DR16_Spectroscopic_ID = {IDs}"
 )
 
 Candidate_Data = cursor.fetchall()
@@ -99,25 +81,68 @@ else:
 
     sys.exit()
 
-filepath = Hirogen_Functions.sdss_peaks_spectra_file_path_generator(Main_Spectra_Path, Plate_List, MJD_List, FiberID_List, Survey_List, run2d_List, Path_Override_Flag_List, Path_Override_List, Mode = 'fakes')
+filepaths = Hirogen_Functions.sdss_spectra_file_path_generator(Main_Spectra_Path, Plate_List, MJD_List, FiberID_List, Survey_List, run2d_List, Path_Override_Flag_List, Path_Override_List)
 
-spectra = Hirogen_Functions.sdss_spectrum_reader(filepath[0], Redshift_List[0], Extinction_List[0])
+new_spectra = Hirogen_Functions.ascii_spectrum_reader(filepaths[0], Redshift_List[0], Extinction_List[0], smoothing=False, sav_gol=True)
 
-fake_wave, fake_flux = spectra[0], spectra[1]
+new_wave, new_flux = new_spectra[0],new_spectra[1]
 
-filepath = Hirogen_Functions.sdss_spectra_file_path_generator(Main_Spectra_Path, Plate_List, MJD_List, FiberID_List, Survey_List, run2d_List, Path_Override_Flag_List, Path_Override_List)
+og_spectra = Hirogen_Functions.sdss_spectrum_reader(filepaths[1], Redshift_List[1], Extinction_List[1], smoothing=False, sav_gol=True)
 
-print(filepath)
+og_wave, og_flux = og_spectra[0],og_spectra[1]
 
-spectra = Hirogen_Functions.sdss_spectrum_reader(filepath[0], Redshift_List[0], Extinction_List[0])
 
-wave, flux = spectra[0], spectra[1]
+try:
+    og_Lower_Spec_Wave_Limit = Hirogen_Functions.round_down_to_nearest(np.min(np.array(og_wave)), 250)
+except ValueError:
+    og_Lower_Spec_Wave_Limit = 0
 
-fig, ax = plt.subplots()
+try:
+    og_Upper_Spec_Wave_Limit = Hirogen_Functions.round_up_to_nearest(np.max(np.array(og_wave)), 250)
+except ValueError:
+    og_Upper_Spec_Wave_Limit = 10000
 
-ax.plot(wave, flux, 'r')
+try:
+    new_Lower_Spec_Wave_Limit = Hirogen_Functions.round_down_to_nearest(np.min(np.array(new_wave)), 250)
+except ValueError:
+    new_Lower_Spec_Wave_Limit = 0
 
-ax.plot(fake_wave, fake_flux, 'k')
+try:
+    new_Upper_Spec_Wave_Limit = Hirogen_Functions.round_up_to_nearest(np.max(np.array(new_wave)), 250)
+except ValueError:
+    new_Upper_Spec_Wave_Limit = 10000
 
+Lower_Spec_Wave_Limit = np.min((og_Lower_Spec_Wave_Limit, new_Lower_Spec_Wave_Limit))
+Upper_Spec_Wave_Limit = np.max((og_Upper_Spec_Wave_Limit, new_Upper_Spec_Wave_Limit))
+
+
+fig, (ax1, ax2) = plt.subplots(2,1, sharex = True, sharey = True, figsize = (20,15))
+
+line_locs = []
+
+for i, line in enumerate(fe_lines):
+    line_loc = all_lines[line][0]
+    val, idx = Hirogen_Functions.find_nearest(og_wave, line_loc)
+    ax1.axvline(val, linestyle = '--', color = 'r')
+    ax2.axvline(val, linestyle = '--', color = 'r')
+    line_locs.append(line_loc)
+    
+
+labels_ax = ax1.twiny()
+labels_ax.set_xticks(line_locs)
+labels_ax.set_xticklabels(line_labels, rotation = 15, fontsize = 18)
+labels_ax.tick_params(top=False, bottom=False, left=False, right=False)
+labels_ax.set_xlim(xmin=Lower_Spec_Wave_Limit, xmax=Upper_Spec_Wave_Limit)
+
+ax1.plot(og_wave, og_flux, 'k')
+ax1.set_xlim(xmin=Lower_Spec_Wave_Limit, xmax=Upper_Spec_Wave_Limit)
+
+ax2.plot(new_wave, new_flux, 'k')
+ax2.set_xlim(xmin=Lower_Spec_Wave_Limit, xmax=Upper_Spec_Wave_Limit)
+ax2.set_xlabel(r'Rest Wavelength [$\AA$]')
+
+fig.text(0.09, 0.5, r'Flux [10$^{-17}$ erg/cm$^{2}$/s/$\AA$]', ha='center', va='center', rotation='vertical', fontsize = 22)
+
+plt.savefig("example_spectrum.png", bbox_inches='tight')
 
 plt.show()

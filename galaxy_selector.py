@@ -17,12 +17,12 @@ from astropy.convolution import convolve, Box1DKernel
 
 User = 'Joe'
 Input_TableID = "SDSS_Galaxy_Spectra"
-Output_TableID = 'SDSS_Fake_Spectra'
+Output_TableID = 'SDSS_Sample_Spectra'
 
 number_to_output = 10000
 
 
-# True of using a set distribution of galaxy types
+# True if using a set distribution of galaxy types
 non_random_dist = False
 
 # Fraction of each type

@@ -2,19 +2,22 @@ import sys
 import os
 import math
 import spectres
+import mysql.connector
+import george
 
 import numpy as np
 import scipy.constants as constants
-import mysql.connector
+import scipy.optimize as op
 
 from astropy.io import fits
 from astropy import units as u
 from astropy.convolution import convolve, Box1DKernel
-from scipy.signal import medfilt
+from scipy.signal import medfilt, savgol_filter
 from scipy.ndimage import gaussian_filter1d
 from dust_extinction.parameter_averages import F99
 from numpy.fft import *
 from mysql.connector import errorcode
+from george import kernels
 
 np.set_printoptions(threshold=sys.maxsize)
 c = constants.value('speed of light in vacuum') / 1000
@@ -44,7 +47,7 @@ def user_config(user):
         database_name = 'CoronalLineGalaxies'
         database_user = 'root'
         database_password = 'Th0thArchive'
-        # Likely not the best idea to have the password essentially public but its not like its actually sensitive info
+        # Likely not the best idea to have the password essentially public but it's not like its actually sensitive info
 
         # Used only in SDSS mode
         # main_spectra_path = '/Volumes/GoogleDrive/My Drive/TDE_Project/Coronal_Line_Galaxies/Existing_Sample_Data/SDSS_Spectra_DR16'
@@ -163,7 +166,7 @@ def lines_for_analysis():
         '[SII]6716': [6716, 'goldenrod', [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
         '[SII]6731': [6731, 'goldenrod', [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
 
-        '[SII]6716,6731': [6723.5, 'goldenrod', [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
+        '[SII]6716_6731': [6723.5, 'goldenrod', [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
 
         '[SIII]6313': [6313, 'goldenrod', [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
 
@@ -188,16 +191,18 @@ def lines_for_scoring():
 
     return spectral_lines_for_scoring_air
 
+
 def coronal_lines():
     """Fe lines"""
     spectral_coronal_lines_air = [
         '[FeVII]6088',
         '[FeX]6376',
         '[FeXI]7894',
-        '[FeXIV]5304' 
+        '[FeXIV]5304'
     ]
 
     return spectral_coronal_lines_air
+
 
 def primary_lines():
     """The lines of primary interest and those which are included in the main snapshot plot"""
@@ -280,7 +285,7 @@ def secondary_lines():
 
         '[SII]6716',
         '[SII]6731',
-        '[SII]6716,6731',
+        '[SII]6716_6731',
         '[SIII]6313'
     ]
 
@@ -394,6 +399,52 @@ def comparison_plot_line_labels_short():
     return short_line_labels_comparison
 
 
+def comparison_lines_extended():
+    """Extended list of lines to include in the followup comparison plot """
+
+    lines_comparison = [
+
+        '[FeVII]3759',
+        '[FeVII]5160',
+        '[FeVII]5722',
+
+        '[FeVII]6088',
+        '[FeX]6376',
+        '[FeXI]7894',
+        '[FeXIV]5304',
+
+        'Halpha',
+        'Hbeta',
+        'Hdelta',
+
+        'HeI4478',
+        'HeII4686',
+    ]
+
+    return lines_comparison
+
+
+def comparison_plot_line_labels_short_extended():
+    """Shortened Line labels for the followup comparison plot lines for when space is an issue"""
+    short_line_labels_comparison = [
+        r'[FeVII]',
+        r'[FeVII]',
+        r'[FeVII]',
+        r'[FeVII]',
+        r'[FeX]',
+        r'[FeXI]',
+        r'[FeXIV]',
+
+        r'H$\alpha$',
+        r'H$\beta$',
+        r'H$\delta$',
+
+        r'HeI',
+        r'HeII',
+    ]
+    return short_line_labels_comparison
+
+
 def presentation_zoom_lines():
     """The lines of primary interest and those which are included in the main snapshot plot"""
 
@@ -443,7 +494,7 @@ def interesting_lines():
         '[FeXI]7894',
         '[FeXIV]5304',
 
-        '[SII]6716,6731'
+        '[SII]6716_6731'
     ]
 
     return lines_of_interest
@@ -502,7 +553,7 @@ def interesting_line_labels_short():
         r'[FeXI]7894',
         r'[FeXIV]5304',
 
-        r'[SII]6716,6731'
+        r'[SII]6716_6731'
     ]
     return line_labels_interesting
 
@@ -511,7 +562,6 @@ def interesting_line_labels_short():
 
 
 def region_cutter(shift, wave, flux, low_cut, high_cut, mode='Shift', error=None):
-
     """
     Cuts down a spectrum, flux, wavelength and determined shift, based on either a shift or wavelength region
     Defaults to shift for compatibility
@@ -715,7 +765,14 @@ def eqw_finder(flux, continuum, xaxis, object_name, start="A", stop="B", xstep="
     return eqw, eqw_points, flux_points, velocity_points
 
 
-def eqw_measurement(flux, true_continuum, scaled_flux, xaxis, line_loc, measurement_length=12):
+def eqw_measurement(
+        flux,
+        true_continuum,
+        scaled_flux,
+        xaxis,
+        line_loc,
+        measurement_length=12
+):
     """Newer version of the EQW measurement - still uses the under the continuum summation
     Defaults to measuring 12 angstroms either side of the given line location though this can be changed as needed"""
 
@@ -1019,8 +1076,16 @@ def spec_reader_fits(filepath, verbose=False):
     return ObservedWave, Flux, FluxError
 
 
-def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_id_list, survey_list, run2d_list,
-                                     override_path_flag_list=[], override_path_list=[]):
+def sdss_spectra_file_path_generator(
+        general_path,
+        plate_list,
+        mjd_list,
+        fiber_id_list,
+        survey_list,
+        run2d_list,
+        override_path_flag_list=[],
+        override_path_list=[]
+):
     """Generates the filepaths for the SDSS spectra assuming they follow the standard file structure from the direct
     download"""
 
@@ -1030,8 +1095,7 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
 
         if override_path_flag_list[ii] == 0:
 
-            
-            if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+            if survey_list[ii] in ['sdss', 'segue1', 'segue2']:
 
                 file_paths.append(
                     f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
@@ -1039,7 +1103,7 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
                 )
 
             elif survey_list[ii] in ['eboss', 'boss']:
-            
+
                 file_paths.append(
                     f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
                     f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}.fits"
@@ -1057,9 +1121,9 @@ def sdss_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_i
 
     return file_paths
 
-def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_id_list, survey_list, run2d_list,
-                                            override_path_flag_list=[], override_path_list=[], Mode='peaks'):
 
+def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, fiber_id_list, survey_list, run2d_list,
+                                           override_path_flag_list=[], override_path_list=[], Mode='peaks'):
     file_paths = []
 
     if Mode.lower() == 'peaks':
@@ -1068,7 +1132,7 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
 
             if override_path_flag_list[ii] == 0:
 
-                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:
 
                     file_paths.append(
                         f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
@@ -1076,7 +1140,7 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
                     )
 
                 elif survey_list[ii] in ['eboss', 'boss']:
-                
+
                     file_paths.append(
                         f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
                         f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-peaks.fits"
@@ -1086,19 +1150,19 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
                     print("Not sure how to handle this survey - exiting for now")
                     print(f"{ii}\t{survey_list[ii]}")
                     sys.exit()
-            
+
             else:
                 file_paths.append(
                     f"{override_path_list[ii]}"
                 )
-    
+
     elif Mode.lower() == 'fakes':
 
         for ii, item in enumerate(plate_list):
 
             if override_path_flag_list[ii] == 0:
 
-                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:             
+                if survey_list[ii] in ['sdss', 'segue1', 'segue2']:
 
                     file_paths.append(
                         f"{general_path}/dr16/sdss/spectro/redux/{run2d_list[ii]}/spectra/{plate_list[ii]}/"
@@ -1106,7 +1170,7 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
                     )
 
                 elif survey_list[ii] in ['eboss', 'boss']:
-                
+
                     file_paths.append(
                         f"{general_path}/dr16/eboss/spectro/redux/{run2d_list[ii]}/spectra/full/{plate_list[ii]}/"
                         f"spec-{plate_list[ii]}-{mjd_list[ii]}-{fiber_id_list[ii]}-fake.fits"
@@ -1116,20 +1180,29 @@ def sdss_peaks_spectra_file_path_generator(general_path, plate_list, mjd_list, f
                     print("Not sure how to handle this survey - exiting for now")
                     print(f"{ii}\t{survey_list[ii]}")
                     sys.exit()
-            
+
             else:
                 file_paths.append(
                     f"{override_path_list[ii]}"
                 )
-            
+
     else:
         print('mode selection not recognised.\nPlease check and try again.')
         sys.exit()
 
     return file_paths
 
-def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxcar=5, median_filter=False,
-                          med_filter_kernel=3, flag_check=False, z_correction_flag=0, extinction_correction_flag=0):
+
+def ascii_spectrum_reader(
+        filepath,
+        z,
+        extinction,
+        smoothing=True, smoothing_boxcar=5,
+        median_filter=False, med_filter_kernel=3,
+        sav_gol=False, sav_gol_window=5, sav_gol_poly=2,
+        flag_check=False,
+        z_correction_flag=0, extinction_correction_flag=0
+):
     """ Very similar in function to SDSS spectrum reader so comments are only included for the differences
     Makes a few assumptions about the file and sets the unknown SDSS values to defaults """
 
@@ -1171,6 +1244,18 @@ def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_box
         flux = filtered_flux
 
     ###########
+    # Savitzky-Golay Filter
+    ###########
+
+    if sav_gol:
+        # If active runs a Savitzky-Golay filter on the spectral data, defaults to a window size of 5 and 2nd order
+        # polynomial though can be configured via the call. All other parameters are the scipy defaults
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
+
+        filtered_flux = savgol_filter(x=flux, window_length=sav_gol_window, polyorder=sav_gol_poly)
+        flux = filtered_flux
+
+    ###########
     # Extinction Correction
     ###########
 
@@ -1203,8 +1288,16 @@ def ascii_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_box
     return lamb_rest, flux, error, spec_res, flags, masked_flags, all_flag_percentage, counted_flag_percentage
 
 
-def fits_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxcar=5, median_filter=False,
-                         med_filter_kernel=3, flag_check=False, z_correction_flag=0, extinction_correction_flag=0):
+def fits_spectrum_reader(
+        filepath,
+        z,
+        extinction,
+        smoothing=True, smoothing_boxcar=5,
+        median_filter=False, med_filter_kernel=3,
+        sav_gol=False, sav_gol_window=5, sav_gol_poly=2,
+        flag_check=False,
+        z_correction_flag=0, extinction_correction_flag=0
+):
     """ Very similar in function to SDSS spectrum reader so comments are only included for the differences
     Makes a few assumptions about the file and sets the unknown SDSS values to defaults """
 
@@ -1245,6 +1338,18 @@ def fits_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
         flux = filtered_flux
 
     ###########
+    # Savitzky-Golay Filter
+    ###########
+
+    if sav_gol:
+        # If active runs a Savitzky-Golay filter on the spectral data, defaults to a window size of 5 and 2nd order
+        # polynomial though can be configured via the call. All other parameters are the scipy defaults
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
+
+        filtered_flux = savgol_filter(x=flux, window_length=sav_gol_window, polyorder=sav_gol_poly)
+        flux = filtered_flux
+
+    ###########
     # Extinction Correction
     ###########
 
@@ -1276,9 +1381,16 @@ def fits_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
     return lamb_rest, flux, error, spec_res, flags, masked_flags, all_flag_percentage, counted_flag_percentage
 
 
-def sdss_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxcar=5,
-                         median_filter=False, med_filter_kernel=3, header_print=False, flag_check=False,
-                         z_correction_flag=0, extinction_correction_flag=0):
+def sdss_spectrum_reader(
+        filepath,
+        z,
+        extinction,
+        smoothing=True, smoothing_boxcar=5,
+        median_filter=False, med_filter_kernel=3,
+        header_print=False, flag_check=False,
+        sav_gol=False, sav_gol_window=5, sav_gol_poly=2,
+        z_correction_flag=0, extinction_correction_flag=0
+):
     """Reads in and does initial processing on SDSS spectra"""
 
     spectrum = spec_reader(filepath=filepath)
@@ -1336,6 +1448,18 @@ def sdss_spectrum_reader(filepath, z, extinction, smoothing=True, smoothing_boxc
     if median_filter:  # If active runs a median filter smooth, defaults to a kernel size of 3 but can be set via the
         # function call
         filtered_flux = medfilt(flux, kernel_size=med_filter_kernel)
+        flux = filtered_flux
+
+    ###########
+    # Savitzky-Golay Filter
+    ###########
+
+    if sav_gol:
+        # If active runs a Savitzky-Golay filter on the spectral data, defaults to a window size of 5 and 2nd order
+        # polynomial though can be configured via the call. All other parameters are the scipy defaults
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
+
+        filtered_flux = savgol_filter(x=flux, window_length=sav_gol_window, polyorder=sav_gol_poly)
         flux = filtered_flux
 
     ###########
@@ -1572,16 +1696,221 @@ def desi_datafile_reader(file):
     # Settings Config Store
     col92 = data[91]
 
+    # Candidate Flag
+    col93 = data[92].astpye(int)
+
+    # Local Scoring Threshold
+    col94 = data[93].astype(int)
+
+    # Scoring Threshold Modifier
+    col95 = data[94].astype(int)
+
+    # Scoring Threshold Modifier Condition
+    col96 = data[95].astype(int)
+
     return \
         col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, \
         col17, col18, col19, col20, col21, col22, col23, col24, col25, col26, col27, col28, col29, col30, col31, \
         col32, col33, col34, col35, col36, col37, col38, col39, col40, col41, col42, col43, col44, col45, col46, \
         col47, col48, col49, col50, col51, col52, col53, col54, col55, col56, col57, col58, col59, col60, col61, \
         col62, col63, col64, col65, col66, col67, col68, col69, col70, col71, col72, col73, col74, col75, col76, \
-        col77, col78, col79, col80, col81, col82, col83, col84, col85, col86, col87, col88, col89, col90, col91, col92
+        col77, col78, col79, col80, col81, col82, col83, col84, col85, col86, col87, col88, col89, col90, col91, \
+        col92, col93, col94, col95, col96
 
 
-def desi_datafile_pre_Hirogen_analysis_reader(file):
+def desi_datafile_reader_legacy(file):
+    """Processes the Hirogen analysis output file making its contents available to the current file"""
+    """Lacks the adaptive scoring columns"""
+
+    data = np.genfromtxt(file, unpack=True, comments='#', dtype=str, delimiter="\t", skip_header=1)
+
+    # ID
+    col1 = data[0].astype(int)
+
+    # Date
+    col2 = data[1].astype(int)
+
+    # Tile
+    col3 = data[2].astype(int)
+
+    # Petal
+    col4 = data[3].astype(int)
+
+    # Fiber
+    col5 = data[4].astype(int)
+
+    # FiberStatus
+    col6 = data[5].astype(int)
+
+    # Perfile Index
+    col7 = data[6].astype(int)
+
+    # RA + DEC
+    col8 = (np.array(data[7])).astype(float)
+    col9 = (np.array(data[8])).astype(float)
+
+    # Redshift + Err
+    col10 = (np.array(data[9])).astype(float)
+    col11 = (np.array(data[10])).astype(float)
+
+    # EBV
+    col12 = (np.array(data[11])).astype(float)
+
+    # line pEQWs
+
+    # Balmer
+    col13 = (np.array(data[12])).astype(float)
+    col14 = (np.array(data[13])).astype(float)
+    col15 = (np.array(data[14])).astype(float)
+    col16 = (np.array(data[15])).astype(float)
+
+    # NII
+    col17 = (np.array(data[16])).astype(float)
+    col18 = (np.array(data[17])).astype(float)
+
+    # Fe
+    col19 = (np.array(data[18])).astype(float)
+    col20 = (np.array(data[19])).astype(float)
+    col21 = (np.array(data[20])).astype(float)
+    col22 = (np.array(data[21])).astype(float)
+    col23 = (np.array(data[22])).astype(float)
+    col24 = (np.array(data[23])).astype(float)
+    col25 = (np.array(data[24])).astype(float)
+
+    # O
+    col26 = (np.array(data[25])).astype(float)
+    col27 = (np.array(data[26])).astype(float)
+    col28 = (np.array(data[27])).astype(float)
+    col29 = (np.array(data[28])).astype(float)
+
+    # He
+    col30 = (np.array(data[29])).astype(float)
+    col31 = (np.array(data[30])).astype(float)
+
+    # NaID
+    col32 = (np.array(data[31])).astype(float)
+
+    # S
+    col33 = (np.array(data[32])).astype(float)
+    col34 = (np.array(data[33])).astype(float)
+    col35 = (np.array(data[34])).astype(float)
+
+    # line Fluxes
+
+    # Balmer
+    col36 = (np.array(data[35])).astype(float)
+    col37 = (np.array(data[36])).astype(float)
+    col38 = (np.array(data[37])).astype(float)
+    col39 = (np.array(data[38])).astype(float)
+
+    # NII
+    col40 = (np.array(data[39])).astype(float)
+    col41 = (np.array(data[40])).astype(float)
+
+    # Fe
+    col42 = (np.array(data[41])).astype(float)
+    col43 = (np.array(data[42])).astype(float)
+    col44 = (np.array(data[43])).astype(float)
+    col45 = (np.array(data[44])).astype(float)
+    col46 = (np.array(data[45])).astype(float)
+    col47 = (np.array(data[46])).astype(float)
+    col48 = (np.array(data[47])).astype(float)
+
+    # O
+    col49 = (np.array(data[48])).astype(float)
+    col50 = (np.array(data[49])).astype(float)
+    col51 = (np.array(data[50])).astype(float)
+    col52 = (np.array(data[51])).astype(float)
+
+    # He
+    col53 = (np.array(data[52])).astype(float)
+    col54 = (np.array(data[53])).astype(float)
+
+    # NaID
+    col55 = (np.array(data[54])).astype(float)
+
+    # S
+    col56 = (np.array(data[55])).astype(float)
+    col57 = (np.array(data[56])).astype(float)
+    col58 = (np.array(data[57])).astype(float)
+
+    # Ratios
+    col59 = (np.array(data[58])).astype(float)
+    col60 = (np.array(data[59])).astype(float)
+    col61 = (np.array(data[60])).astype(float)
+    col62 = (np.array(data[61])).astype(float)
+    col63 = (np.array(data[62])).astype(float)
+    col64 = (np.array(data[63])).astype(float)
+
+    # Lick Indices
+    col65 = (np.array(data[64])).astype(float)
+    col66 = (np.array(data[65])).astype(float)
+    col67 = (np.array(data[66])).astype(float)
+    col68 = (np.array(data[67])).astype(float)
+    col69 = (np.array(data[68])).astype(float)
+    col70 = (np.array(data[69])).astype(float)
+
+    # Flags
+    col71 = (np.array(data[70])).astype(int)
+    col72 = (np.array(data[71])).astype(int)
+    col73 = (np.array(data[72])).astype(int)
+    col74 = (np.array(data[73])).astype(int)
+    col75 = (np.array(data[74])).astype(int)
+    col76 = (np.array(data[75])).astype(int)
+    col77 = (np.array(data[76])).astype(int)
+
+    # Pixel / Spectrum Quality Information
+    col78 = (np.array(data[77])).astype(float)
+    col79 = (np.array(data[78])).astype(float)
+
+    # ECLE Score
+    col80 = (np.array(data[79])).astype(int)
+
+    # Flux Data - Uses FiberFluxes but FLUX_IVAR
+    # G
+    col81 = (np.array(data[80])).astype(float)
+    col82 = (np.array(data[81])).astype(float)
+    # R
+    col83 = (np.array(data[82])).astype(float)
+    col84 = (np.array(data[83])).astype(float)
+    # Z
+    col85 = (np.array(data[84])).astype(float)
+    col86 = (np.array(data[85])).astype(float)
+
+    # WISE
+    # W1
+    col87 = (np.array(data[86])).astype(float)
+    col88 = (np.array(data[87]))
+    # W2
+    col89 = (np.array(data[88])).astype(float)
+    col90 = (np.array(data[89]))
+
+    for ii, item in enumerate(col88):
+        if col88[ii] == '--':
+            col88[ii] = -995
+        if col90[ii] == '--':
+            col90[ii] = -995
+
+    col88 = col88.astype(float)
+    col90 = col90.astype(float)
+
+    # Spectrum ID Key
+    col91 = data[90]
+
+    # Settings Config Store
+    col92 = data[91]
+
+    return \
+        col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, \
+        col17, col18, col19, col20, col21, col22, col23, col24, col25, col26, col27, col28, col29, col30, col31, \
+        col32, col33, col34, col35, col36, col37, col38, col39, col40, col41, col42, col43, col44, col45, col46, \
+        col47, col48, col49, col50, col51, col52, col53, col54, col55, col56, col57, col58, col59, col60, col61, \
+        col62, col63, col64, col65, col66, col67, col68, col69, col70, col71, col72, col73, col74, col75, col76, \
+        col77, col78, col79, col80, col81, col82, col83, col84, col85, col86, col87, col88, col89, col90, col91, \
+        col92
+
+
+def desi_datafile_pre_hirogen_analysis_reader(file):
     """Processes the pre-Hirogen analysis metafile making its contents available to the current file"""
 
     data = np.genfromtxt(file, unpack=True, comments='#', dtype=str, delimiter="\t", skip_header=1)
@@ -1694,33 +2023,18 @@ def fft_filter_signal(signal, threshold=1e8):
     return irfft(fourier, n=len(signal))
 
 
-# Exploratory Gaussian Smoothing Function
+# Gaussian Smoothing Function
 
 def gaussian_smoothing(flux, sigma_value=2):
     smoothed_flux = gaussian_filter1d(input=flux, sigma=sigma_value)
     return smoothed_flux
 
-# Spectral rebinning with spectres
 
-def spectres_rebin(flux, wave, desired_res):
+# Savitzky-Golay filter Function - with defaults
 
-    if len(wave) != len(flux):
-        print('The lengths of the wave and flux array do not match.\nPlease check and try again')
-        print(f'Wave:{len(wave)}\tFlux:{len(flux)}')
-        sys.exit()
-
-    rounded_wave_start = round_down_to_nearest(wave[0], desired_res)
-    rounded_wave_end = round_up_to_nearest(wave[-1], desired_res)
-
-    lin_space_value = int(((rounded_wave_end - rounded_wave_start) / desired_res) + 1)
-    rebinned_wave = np.linspace(rounded_wave_start, rounded_wave_end, lin_space_value)
-
-    rebinned_flux = spectres.spectres(new_wavs=rebinned_wave,
-                                      spec_wavs=wave,
-                                      spec_fluxes=flux,
-                                      fill=0)
-
-    return rebinned_flux, rebinned_wave
+def sav_gol_filter(flux, sav_gol_window=5, sav_gol_poly=2):
+    smoothed_flux = savgol_filter(x=flux, window_length=sav_gol_window, polyorder=sav_gol_poly)
+    return smoothed_flux
 
 
 # Spectral rebinning with spectres
@@ -1737,10 +2051,12 @@ def spectres_rebin(flux, wave, desired_res):
     lin_space_value = int(((rounded_wave_end - rounded_wave_start) / desired_res) + 1)
     rebinned_wave = np.linspace(rounded_wave_start, rounded_wave_end, lin_space_value)
 
-    rebinned_flux = spectres.spectres(new_wavs=rebinned_wave,
-                                      spec_wavs=wave,
-                                      spec_fluxes=flux,
-                                      fill=0)
+    rebinned_flux = spectres.spectres(
+        new_wavs=rebinned_wave,
+        spec_wavs=wave,
+        spec_fluxes=flux,
+        fill=0
+    )
 
     return rebinned_flux, rebinned_wave
 
@@ -1762,7 +2078,7 @@ def single_gaussian(x, height, center, width):
 # Gaussian EQW Function
 #############################################
 
-# Due to the uncertainty about this equation - its not used
+# Due to the uncertainty about this equation - it's not used
 # Gaussian EQWs are calculated the same way as the narrow features
 
 def gaussian_eqw(amp, sigma):
@@ -1772,7 +2088,7 @@ def gaussian_eqw(amp, sigma):
 
 
 #############################################
-# STDDEV to FWHM  Conversion
+# STDDEV to FWHM Conversion
 #############################################
 
 def stddev_to_fwhm(list):
@@ -1781,14 +2097,56 @@ def stddev_to_fwhm(list):
     return result
 
 
+def stddev_to_fwhm_non_list(value):
+    result = value * (2 * ((2 * np.log(2)) ** 0.5))
+
+    return result
+
+
 #############################################
-# FWHM to STDDEV  Conversion
+# FWHM to STDDEV Conversion
 #############################################
 
 def fwhm_to_stddev(list):
     result = np.ndarray.tolist(np.array(list) / (2 * ((2 * np.log(2)) ** 0.5)))
 
     return result
+
+
+def fwhm_to_stddev_non_list(value):
+    result = value / (2 * ((2 * np.log(2)) ** 0.5))
+
+    return result
+
+
+#############################################
+# FWHM to Velocity
+#############################################
+
+"""
+Line center should be given in the same units as fwhm is measured in
+Velocity will be returned in kms^-1
+"""
+
+
+def fwhm_to_velocity(fwhm, line_center):
+    velocity = c * (fwhm / line_center)
+    return velocity
+
+
+#############################################
+# Velocity to FWHM
+#############################################
+
+"""
+Line center should be given in the same units as fwhm is measured in
+Velocity will be returned in kms^-1
+"""
+
+
+def velocity_to_fwhm(velocity, line_center):
+    fwhm = (velocity / c) * line_center
+    return fwhm
 
 
 ########################################################################
@@ -2031,7 +2389,6 @@ def lick_index_calculation(wave, flux, err, verbose=False):
 ########################################################################
 
 def round_up_to_nearest(x, a):
-
     try:
         rounded = math.ceil(x / a) * a
     except ValueError:
@@ -2042,7 +2399,6 @@ def round_up_to_nearest(x, a):
 
 
 def round_down_to_nearest(x, a):
-
     try:
         rounded = math.floor(x / a) * a
     except ValueError:
@@ -2059,6 +2415,7 @@ def find_nearest_index_only(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
+
 
 # Actual value as well as the index
 
@@ -2129,3 +2486,72 @@ def no_commit_and_close(connection, cursor):
     connection.close()
 
     # print("\nThe connection to the mySQL Database is now closed.\nNo update has been saved.")
+
+
+########################################################################
+# Gaussian Process Fitting
+########################################################################
+
+def gaussian_process_fit(x, y, yerr, colour, kernel_selection=None, ax=None, label=None, predict=False):
+    # Default 'metric' size is configured for a long duration light curve but hyperparameter optimisation should take
+    # care of it
+
+    if kernel_selection:
+        if kernel_selection == 'Matern32Kernel':
+            kernel = np.var(y) * kernels.Matern52Kernel(100000)
+
+        elif kernel_selection == 'Matern52Kernel':
+            kernel = np.var(y) * kernels.Matern52Kernel(100000)
+
+        elif kernel_selection == 'Exp':
+            kernel = np.var(y) * kernels.ExpKernel(100000)
+
+        elif kernel_selection == 'ExpSquared':
+            kernel = np.var(y) * kernels.ExpSquaredKernel(100000)
+
+        else:
+            print('Given kernel type is not recognised - check and try again')
+            sys.exit()
+
+    else:
+        # Defaults to a Matern 3/2 kernel if not specified
+        kernel = np.var(y) * kernels.Matern32Kernel(100000)
+
+    gp = george.GP(kernel)
+
+    gp.compute(x, yerr)
+
+    def nll(p):
+        gp.set_parameter_vector(p)
+        ll = gp.log_likelihood(y, quiet=True)
+        return -ll if np.isfinite(ll) else 1e25
+
+    # And the gradient of the objective function.
+    def grad_nll(p):
+        gp.set_parameter_vector(p)
+        return -gp.grad_log_likelihood(y, quiet=True)
+
+    # Run the optimization routine.
+    p0 = gp.get_parameter_vector()
+    results = op.minimize(nll, p0, jac=grad_nll, method="L-BFGS-B")
+    gp.set_parameter_vector(results.x)
+
+    x_pred = np.linspace(x[0], x[-1], 500)
+    pred, pred_var = gp.predict(y, x_pred, return_var=True)
+
+    if ax:
+
+        ax.fill_between(
+            x_pred, pred - np.sqrt(pred_var), pred + np.sqrt(pred_var),
+            color=colour, alpha=0.2
+        )
+        ax.plot(x_pred, pred, colour, lw=1.5, alpha=0.5, label=label)
+
+        if predict:
+            x = np.linspace(x[-1], x[-1] + 500, 2000)
+            mu, var = gp.predict(y, x, return_var=True)
+            std = np.sqrt(var)
+
+            ax.fill_between(x, mu + std, mu - std, color=colour, alpha=0.1)
+
+    return x_pred, pred, pred_var

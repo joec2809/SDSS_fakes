@@ -21,7 +21,7 @@ User = 'Joe'
 User_Config = Hirogen_Functions.user_config(user=User)
 Main_Config = Hirogen_Functions.main_config()
 
-TableID = "SDSS_Fake_Spectra"
+TableID = "SDSS_Sample_Spectra"
 
 # Search for 'QUERY' to find the actual database access location where parameters can be adjusted
 
@@ -38,7 +38,8 @@ cursor = Data.cursor()
 cursor.execute(
         f"SELECT DR16_Spectroscopic_ID, spec_Plate, spec_MJD, spec_FiberID, z_SDSS_spec, generalised_extinction, "
         f"survey, run2d, Standard_Inclusion,Path_Override_Flag, Path_Override, Follow_Up_ID, Smoothing_Override, "
-        f"z_corrected_flag, extinction_corrected_flag, lin_con_pEQW_OIII5007, lin_con_LineFlux_OIII5007 "
+        f"z_corrected_flag, extinction_corrected_flag, lin_con_pEQW_OIII5007, lin_con_LineFlux_OIII5007, "
+        f"lin_con_pEQW_FeVII6008, lin_con_pEQW_FeX6376, lin_con_pEQW_FeXI7894, lin_con_pEQW_FeXIV5304, ECLE_Candidate_Score "
         f"FROM `{Database}`.`{TableID}`"
         #f"WHERE Manually_Inspected_Flag != -10 AND lin_con_LineFlux_Halpha is NULL"
         #f"WHERE lin_con_pEQW_Halpha is NULL"
@@ -75,20 +76,35 @@ if len(galaxy_data) >= 1:
     galaxy_Extinction_Correction_Override_List = [item[14] for item in galaxy_data]
     OIII_pEQW = [item[15] for item in galaxy_data]
     OIII_flux = [item[16] for item in galaxy_data]
+    fe_pEQW = np.array([[item[17] for item in galaxy_data], [item[18] for item in galaxy_data], [item[19] for item in galaxy_data], [item[20] for item in galaxy_data]])
+    score = [item[21] for item in galaxy_data]
 
 else:
     print("galaxy_data Length error: Check and try again.")
 
     sys.exit()
 
-galaxy_FilePaths = Hirogen_Functions.sdss_peaks_spectra_file_path_generator(
+galaxy_FilePaths = Hirogen_Functions.sdss_spectra_file_path_generator(
     Main_Spectra_Path, galaxy_Plate_List, galaxy_MJD_List, galaxy_FiberID_List, galaxy_Survey_List, galaxy_run2d_List, 
-    galaxy_Path_Override_Flag_List, galaxy_Path_Override_List, Mode = 'fakes'
+    galaxy_Path_Override_Flag_List, galaxy_Path_Override_List
 )
 
-file = np.random.randint(0,len(galaxy_FilePaths))
+ave_fe_pEQW = np.mean(fe_pEQW, axis = 0)
+
+
+idxs = np.where(np.logical_and(score[0] < 7, ave_fe_pEQW < -2))
+
+idx = np.random.randint(0,len(idxs[0]))
+
+file = 9390
+
+print(galaxy_Object_Name_List[file])
+
+print(fe_pEQW[:,file], ave_fe_pEQW[file])
 
 spectra = Hirogen_Functions.sdss_spectrum_reader(galaxy_FilePaths[file], galaxy_Redshift_List[file], galaxy_Extinction_List[file]) 
+
+print(score[file])
 
 lamb_rest = spectra[0]
 flux = spectra[1]
@@ -96,14 +112,13 @@ flux = spectra[1]
 lines = Hirogen_Functions.lines_for_analysis()
 
 primary = Hirogen_Functions.primary_lines()
-labels = Hirogen_Functions.primary_line_labels()
 
 fig, ax = plt.subplots(figsize = (20,10))
 
 for i, line in enumerate(lines):
     if line in primary:
-        ax.axvline(lines[line][0], 0, 1, color = 'k')
-        ax.annotate(line, (lines[line][0], 30))
+        ax.axvline(lines[line][0], 0, 1, linestyle = '--', color = 'r')
+        ax.annotate(line, (lines[line][0], 10))
 
 ax.plot(lamb_rest, flux)
 

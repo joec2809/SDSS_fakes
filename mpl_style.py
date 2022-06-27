@@ -4,7 +4,7 @@ scientific = {
     'lines.antialiased': True,
 
     # Font
-    'font.size': 16.0,
+    'font.size': 18.0,
 
     # Axes
     'axes.linewidth': 1.5,
